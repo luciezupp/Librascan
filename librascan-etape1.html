@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LibraScan — Import Référentiel</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #F7F4EF;
+      color: #1a1a1a;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #1C1C1E;
+      padding: 16px 20px;
+    }
+    header .label {
+      color: #C8A96E;
+      font-size: 11px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+    header h1 {
+      color: #fff;
+      font-size: 22px;
+    }
+
+    .container {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 24px 20px;
+    }
+
+    /* ZONE IMPORT */
+    .import-zone {
+      background: #fff;
+      border: 2px dashed #C8A96E;
+      border-radius: 16px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-bottom: 20px;
+    }
+    .import-zone:hover { background: #fdf8f0; }
+    .import-zone .icon { font-size: 48px; margin-bottom: 12px; }
+    .import-zone h2 { font-size: 18px; margin-bottom: 8px; }
+    .import-zone p { color: #666; font-size: 14px; line-height: 1.5; }
+    .import-zone .btn {
+      display: inline-block;
+      margin-top: 16px;
+      background: #C8A96E;
+      color: #1C1C1E;
+      border-radius: 8px;
+      padding: 10px 24px;
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    /* STATS */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .stat-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+      border: 1px solid #E0D8CC;
+    }
+    .stat-card .number {
+      font-size: 28px;
+      font-weight: bold;
+      color: #C8A96E;
+    }
+    .stat-card .label {
+      font-size: 12px;
+      color: #666;
+      margin-top: 4px;
+    }
+
+    /* CATEGORIES */
+    .section-title {
+      font-size: 13px;
+      color: #888;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .categories {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .cat-badge {
+      background: #fff;
+      border: 1px solid #E0D8CC;
+      border-radius: 20px;
+      padding: 5px 12px;
+      font-size: 12px;
+      color: #444;
+    }
+    .cat-badge span {
+      background: #C8A96E;
+      color: #fff;
+      border-radius: 10px;
+      padding: 1px 7px;
+      font-size: 11px;
+      margin-left: 6px;
+      font-weight: bold;
+    }
+
+    /* APERCU TABLE */
+    .apercu {
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid #E0D8CC;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    .apercu-header {
+      padding: 14px 16px;
+      background: #1C1C1E;
+      color: #C8A96E;
+      font-size: 13px;
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+    .apercu table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    .apercu th {
+      background: #F7F4EF;
+      padding: 8px 12px;
+      text-align: left;
+      color: #888;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      border-bottom: 1px solid #E0D8CC;
+    }
+    .apercu td {
+      padding: 8px 12px;
+      border-bottom: 1px solid #f0ece4;
+      vertical-align: top;
+    }
+    .apercu tr:last-child td { border-bottom: none; }
+    .apercu tr:hover td { background: #fdf8f0; }
+
+    .isbn { font-family: monospace; color: #555; }
+    .cat-tag {
+      background: #f0ece4;
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 10px;
+      color: #666;
+    }
+    .qty {
+      font-weight: bold;
+      color: #1C1C1E;
+      text-align: center;
+    }
+
+    /* BOUTON CONTINUER */
+    .btn-continue {
+      width: 100%;
+      background: #1C1C1E;
+      color: #C8A96E;
+      border: none;
+      border-radius: 12px;
+      padding: 16px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      display: none;
+    }
+    .btn-continue:hover { background: #333; }
+
+    /* ALERTE */
+    .alert {
+      background: #FFF3CD;
+      border: 1px solid #FFCD39;
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-size: 13px;
+      color: #664D03;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    input[type="file"] { display: none; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="label">Inventaire</div>
+  <h1>📚 LibraScan</h1>
+</header>
+
+<div class="container">
+
+  <!-- ZONE IMPORT -->
+  <div class="import-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+    <div class="icon">📂</div>
+    <h2>Charger le référentiel</h2>
+    <p>Votre fichier Excel ou CSV avec la liste<br>de vos références et leurs ISBN</p>
+    <div class="btn">Choisir un fichier</div>
+  </div>
+
+  <div class="alert" id="alertMsg"></div>
+
+  <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
+
+  <!-- STATS (masquées au départ) -->
+  <div class="stats" id="statsZone" style="display:none">
+    <div class="stat-card">
+      <div class="number" id="statTotal">0</div>
+      <div class="label">Références</div>
+    </div>
+    <div class="stat-card">
+      <div class="number" id="statAvecISBN">0</div>
+      <div class="label">Avec ISBN</div>
+    </div>
+    <div class="stat-card">
+      <div class="number" id="statCategories">0</div>
+      <div class="label">Catégories</div>
+    </div>
+  </div>
+
+  <!-- CATEGORIES -->
+  <div id="categoriesZone" style="display:none">
+    <div class="section-title">Catégories détectées</div>
+    <div class="categories" id="categoriesList"></div>
+  </div>
+
+  <!-- APERCU -->
+  <div class="apercu" id="apercuZone" style="display:none">
+    <div class="apercu-header">Aperçu — 10 premières références</div>
+    <table>
+      <thead>
+        <tr>
+          <th>ISBN / Code</th>
+          <th>Titre</th>
+          <th>Auteur</th>
+          <th>Catégorie</th>
+          <th>Qté</th>
+        </tr>
+      </thead>
+      <tbody id="apercuBody"></tbody>
+    </table>
+  </div>
+
+  <!-- CONTINUER -->
+  <button class="btn-continue" id="btnContinue">
+    ✅ Référentiel chargé — Passer au scan →
+  </button>
+
+</div>
+
+<script>
+  // ── Stockage global du référentiel ──────────────────────────────
+  window.REFERENTIEL = [];
+
+  // ── Colonnes attendues (insensible à la casse et aux espaces) ───
+  const COL_MAP = {
+    isbn:      ['code article', 'isbn', 'ean', 'code'],
+    titre:     ['titre', 'title', 'nom'],
+    auteur:    ['auteur', 'author', 'auteurs'],
+    editeur:   ['editeur', 'éditeur', 'publisher'],
+    categorie: ['nom catégorie', 'nom categorie', 'catégorie', 'categorie', 'category'],
+    quantite:  ['qté', 'qte', 'quantite', 'quantité', 'stock', 'qty'],
+  };
+
+  function findCol(headers, keys) {
+    for (const key of keys) {
+      const idx = headers.findIndex(h => h.toLowerCase().trim() === key);
+      if (idx !== -1) return idx;
+    }
+    return -1;
+  }
+
+  // ── Drag & drop ──────────────────────────────────────────────────
+  const dropZone = document.getElementById('dropZone');
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.style.background = '#fdf8f0'; });
+  dropZone.addEventListener('dragleave', () => { dropZone.style.background = ''; });
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.style.background = '';
+    const file = e.dataTransfer.files[0];
+    if (file) processFile(file);
+  });
+
+  document.getElementById('fileInput').addEventListener('change', e => {
+    if (e.target.files[0]) processFile(e.target.files[0]);
+  });
+
+  // ── Traitement du fichier ────────────────────────────────────────
+  function processFile(file) {
+    const ext = file.name.split('.').pop().toLowerCase();
+    const reader = new FileReader();
+
+    reader.onload = function(e) {
+      let rows = [];
+      try {
+        if (ext === 'csv') {
+          rows = parseCSV(e.target.result);
+        } else {
+          const wb = XLSX.read(e.target.result, { type: 'array' });
+          const ws = wb.Sheets[wb.SheetNames[0]];
+          rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+        }
+        buildReferentiel(rows, file.name);
+      } catch(err) {
+        showAlert('Erreur lors de la lecture du fichier : ' + err.message);
+      }
+    };
+
+    if (ext === 'csv') {
+      reader.readAsText(file, 'UTF-8');
+    } else {
+      reader.readAsArrayBuffer(file);
+    }
+  }
+
+  function parseCSV(text) {
+    return text.split('\n').map(line =>
+      line.split(';').map(cell => cell.replace(/^"|"$/g, '').trim())
+    );
+  }
+
+  // ── Construction du référentiel ──────────────────────────────────
+  function buildReferentiel(rows, filename) {
+    if (rows.length < 2) {
+      showAlert('Le fichier semble vide ou ne contient qu\'une seule ligne.');
+      return;
+    }
+
+    const headers = rows[0].map(h => String(h).toLowerCase().trim());
+
+    const idxISBN  = findCol(headers, COL_MAP.isbn);
+    const idxTitre = findCol(headers, COL_MAP.titre);
+    const idxAuteur= findCol(headers, COL_MAP.auteur);
+    const idxEdit  = findCol(headers, COL_MAP.editeur);
+    const idxCat   = findCol(headers, COL_MAP.categorie);
+    const idxQte   = findCol(headers, COL_MAP.quantite);
+
+    if (idxTitre === -1) {
+      showAlert('Colonne "Titre" introuvable. Vérifiez les en-têtes de votre fichier.');
+      return;
+    }
+
+    const referentiel = [];
+    const categories  = {};
+
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row || row.every(c => !c)) continue; // ligne vide
+
+      const isbn  = idxISBN  !== -1 ? String(row[idxISBN] || '').trim()  : '';
+      const titre = idxTitre !== -1 ? String(row[idxTitre] || '').trim() : '';
+      const auteur= idxAuteur!== -1 ? String(row[idxAuteur]|| '').trim() : '';
+      const edit  = idxEdit  !== -1 ? String(row[idxEdit] || '').trim()  : '';
+      const cat   = idxCat   !== -1 ? String(row[idxCat]  || '').trim()  : '';
+      const qte   = idxQte   !== -1 ? String(row[idxQte]  || '').trim()  : '';
+
+      if (!titre) continue;
+
+      const item = { isbn, titre, auteur, editeur: edit, categorie: cat, quantite: qte };
+      referentiel.push(item);
+
+      if (cat) categories[cat] = (categories[cat] || 0) + 1;
+    }
+
+    window.REFERENTIEL = referentiel;
+    displayResults(referentiel, categories, filename);
+  }
+
+  // ── Affichage des résultats ──────────────────────────────────────
+  function displayResults(refs, categories, filename) {
+    hideAlert();
+
+    const avecISBN = refs.filter(r => r.isbn && r.isbn.length >= 10).length;
+
+    document.getElementById('statTotal').textContent     = refs.length;
+    document.getElementById('statAvecISBN').textContent  = avecISBN;
+    document.getElementById('statCategories').textContent= Object.keys(categories).length;
+
+    // Catégories triées par nombre décroissant
+    const catSorted = Object.entries(categories).sort((a,b) => b[1]-a[1]);
+    const catList = document.getElementById('categoriesList');
+    catList.innerHTML = catSorted.map(([cat, nb]) =>
+      `<div class="cat-badge">${cat}<span>${nb}</span></div>`
+    ).join('');
+
+    // Aperçu des 10 premières lignes
+    const tbody = document.getElementById('apercuBody');
+    tbody.innerHTML = refs.slice(0, 10).map(r => `
+      <tr>
+        <td class="isbn">${r.isbn || '<span style="color:#ccc">—</span>'}</td>
+        <td>${truncate(r.titre, 35)}</td>
+        <td style="color:#666">${truncate(r.auteur, 20)}</td>
+        <td><span class="cat-tag">${r.categorie || '—'}</span></td>
+        <td class="qty">${r.quantite || '—'}</td>
+      </tr>
+    `).join('');
+
+    // Mise à jour zone import
+    dropZone.innerHTML = `
+      <div class="icon">✅</div>
+      <h2>${filename}</h2>
+      <p style="color:#2e7d32;font-weight:bold">${refs.length} références chargées</p>
+      <div class="btn" style="background:#E8F5E9;color:#2e7d32">Changer de fichier</div>
+    `;
+
+    document.getElementById('statsZone').style.display     = 'grid';
+    document.getElementById('categoriesZone').style.display= 'block';
+    document.getElementById('apercuZone').style.display    = 'block';
+    document.getElementById('btnContinue').style.display   = 'block';
+  }
+
+  function truncate(str, n) {
+    return str && str.length > n ? str.slice(0, n) + '…' : (str || '—');
+  }
+
+  function showAlert(msg) {
+    const el = document.getElementById('alertMsg');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+  function hideAlert() {
+    document.getElementById('alertMsg').style.display = 'none';
+  }
+
+  document.getElementById('btnContinue').addEventListener('click', () => {
+    alert('Étape 2 à venir — Analyse photo + croisement BNF');
+    // Navigation vers étape 2 à connecter ici
+  });
+</script>
+</body>
+</html>
