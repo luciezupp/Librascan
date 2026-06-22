@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test BNF</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; background: #f5f5f5; }
+    h1 { font-size: 20px; }
+    button { background: #C8A96E; border: none; padding: 14px 20px; border-radius: 8px; font-size: 16px; font-weight: bold; width: 100%; margin-bottom: 12px; cursor: pointer; }
+    .result { background: #fff; border-radius: 8px; padding: 14px; margin-top: 12px; border: 1px solid #ddd; font-size: 13px; word-break: break-all; white-space: pre-wrap; }
+    .ok { border-left: 4px solid #4CAF50; }
+    .err { border-left: 4px solid #F44336; }
+  </style>
+</head>
+<body>
+  <h1>🧪 Test API BNF</h1>
+  <p style="font-size:13px;color:#666">Teste si l'API BNF est accessible depuis ce navigateur mobile.</p>
+
+  <button onclick="testerISBN()">Test 1 — Recherche par ISBN<br><small style="font-weight:normal">ISBN: 9782378762728 (Prieuré collector)</small></button>
+  <button onclick="testerTitreAuteur()">Test 2 — Recherche Titre + Auteur<br><small style="font-weight:normal">"Walden" + "Thoreau"</small></button>
+  <button onclick="testerMarcher()">Test 3 — Titre court<br><small style="font-weight:normal">"Marcher" + "Thoreau"</small></button>
+
+  <div id="resultat"></div>
+
+  <script>
+    const BASE = 'https://catalogue.bnf.fr/api/SRU?version=1.2&operation=searchRetrieve&recordSchema=dublincore&maximumRecords=5';
+
+    async function appeler(query, label) {
+      const div = document.getElementById('resultat');
+      div.innerHTML = `<div class="result">⏳ Requête en cours : ${label}...</div>`;
+      const url = BASE + '&query=' + encodeURIComponent(query);
+      const debut = Date.now();
+      try {
+        const res = await fetch(url);
+        const duree = Date.now() - debut;
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const text = await res.text();
+
+        // Extraire quelques infos du XML
+        const titres = [...text.matchAll(/<dc:title>(.*?)<\/dc:title>/g)].map(m => m[1]).slice(0, 5);
+        const isbns = [...text.matchAll(/<dc:identifier>.*?(97[89]\d{10}).*?<\/dc:identifier>/g)].map(m => m[1]).slice(0, 5);
+        const nb = text.match(/numberOfRecords>(\d+)</)?.[1] || '?';
+
+        div.innerHTML = `<div class="result ok">
+✅ SUCCÈS — ${duree}ms
+Résultats trouvés : ${nb}
+
+Titres :
+${titres.length ? titres.join('\n') : '(aucun)'}
+
+ISBN trouvés :
+${isbns.length ? isbns.join('\n') : '(aucun)'}
+        </div>`;
+      } catch(e) {
+        const duree = Date.now() - debut;
+        div.innerHTML = `<div class="result err">
+❌ ÉCHEC — ${duree}ms
+Erreur : ${e.message}
+
+→ Probablement un blocage CORS.
+→ Il faudra un proxy Netlify Function.
+        </div>`;
+      }
+    }
+
+    function testerISBN() {
+      appeler('bib.isbn adj "9782378762728"', 'ISBN Prieuré collector');
+    }
+    function testerTitreAuteur() {
+      appeler('(bib.title all "Walden") and (bib.author all "Thoreau")', 'Walden + Thoreau');
+    }
+    function testerMarcher() {
+      appeler('(bib.title all "Marcher") and (bib.author all "Thoreau")', 'Marcher + Thoreau');
+    }
+  </script>
+</body>
+</html>
