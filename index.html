@@ -1,0 +1,1390 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>LibraScan</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #F7F4EF; color: #1a1a1a; min-height: 100vh; }
+
+    /* HEADER */
+    header { background: #1C1C1E; padding: 14px 20px; position: sticky; top: 0; z-index: 100; }
+    header .sub { color: #C8A96E; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; }
+    header h1 { color: #fff; font-size: 20px; }
+
+    /* TABS */
+    .tabs { display: flex; background: #fff; border-bottom: 2px solid #E0D8CC; display: none; }
+    .tab-btn { flex: 1; padding: 12px 8px; border: none; background: none; font-size: 13px; cursor: pointer; color: #888; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+    .tab-btn.active { color: #1C1C1E; font-weight: bold; border-bottom-color: #C8A96E; }
+
+    /* SCREENS */
+    .screen { display: none; padding: 20px; max-width: 680px; margin: 0 auto; }
+    .screen.active { display: block; }
+
+    /* STEPS */
+    .steps { display: flex; justify-content: center; align-items: center; gap: 6px; margin-bottom: 20px; }
+    .step { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; }
+    .step.done { background: #4CAF50; color: #fff; }
+    .step.active { background: #C8A96E; color: #1C1C1E; }
+    .step.pending { background: #E0D8CC; color: #888; }
+    .step-line { width: 28px; height: 2px; background: #E0D8CC; }
+    .step-line.done { background: #4CAF50; }
+
+    /* CARDS */
+    .card { background: #fff; border-radius: 14px; padding: 18px; border: 1px solid #E0D8CC; margin-bottom: 14px; }
+
+    /* BUTTONS */
+    .btn { display: block; width: 100%; border: none; border-radius: 10px; padding: 13px; font-size: 14px; font-weight: bold; cursor: pointer; text-align: center; margin-bottom: 8px; }
+    .btn-gold { background: #C8A96E; color: #1C1C1E; }
+    .btn-dark { background: #1C1C1E; color: #C8A96E; }
+    .btn-outline { background: #fff; color: #1C1C1E; border: 2px solid #C8A96E; }
+    .btn-green { background: #E8F5E9; color: #2E7D32; border: 1.5px solid #4CAF50; border-radius: 8px; padding: 9px; font-size: 13px; font-weight: bold; cursor: pointer; flex: 1; }
+    .btn-red { background: #FFEBEE; color: #C62828; border: 1.5px solid #F44336; border-radius: 8px; padding: 9px; font-size: 13px; font-weight: bold; cursor: pointer; flex: 1; }
+    .btn-grey { background: #fff; color: #555; border: 1.5px solid #E0D8CC; border-radius: 8px; padding: 9px; font-size: 13px; cursor: pointer; flex: 1; }
+    .btn-row { display: flex; gap: 8px; margin: 8px 0; }
+    .btn-sm { display: inline-block; background: #C8A96E; color: #1C1C1E; border: none; border-radius: 7px; padding: 7px 14px; font-size: 12px; font-weight: bold; cursor: pointer; }
+    .btn-link { background: none; border: none; color: #C8A96E; font-size: 12px; cursor: pointer; text-decoration: underline; padding: 4px; }
+    .btn-danger { background: none; border: none; color: #e57373; font-size: 12px; cursor: pointer; }
+
+    /* INPUTS */
+    .field { margin-bottom: 12px; }
+    .field label { display: block; font-size: 12px; color: #666; margin-bottom: 5px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; }
+    .field input { width: 100%; border: 1.5px solid #E0D8CC; border-radius: 8px; padding: 11px; font-size: 14px; background: #fafafa; }
+    .field input:focus { outline: none; border-color: #C8A96E; }
+
+    /* ALERTS */
+    .alert { border-radius: 10px; padding: 11px 14px; font-size: 13px; margin-bottom: 12px; }
+    .alert-err { background: #FFEBEE; border: 1px solid #EF9A9A; color: #C62828; display: none; }
+    .alert-ok { background: #E8F5E9; border: 1px solid #A5D6A7; color: #1B5E20; display: none; }
+    .alert-warn { background: #FFF8E1; border: 1px solid #FFD54F; color: #5D4037; display: none; }
+    .alert-info { background: #E3F2FD; border: 1px solid #90CAF9; color: #1565C0; }
+
+    /* STATS */
+    .stat-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 14px; }
+    .stat-box { background: #fff; border-radius: 10px; padding: 12px; text-align: center; border: 1px solid #E0D8CC; }
+    .stat-box .n { font-size: 22px; font-weight: bold; color: #C8A96E; }
+    .stat-box .l { font-size: 11px; color: #888; margin-top: 2px; }
+
+    /* CATEGORIES */
+    .sec-title { font-size: 11px; color: #888; letter-spacing: 2px; text-transform: uppercase; margin: 12px 0 8px; }
+    .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+    .tag { background: #fff; border: 1px solid #E0D8CC; border-radius: 16px; padding: 3px 10px; font-size: 11px; color: #444; }
+    .tag span { background: #C8A96E; color: #fff; border-radius: 8px; padding: 1px 6px; font-size: 10px; margin-left: 4px; font-weight: bold; }
+
+    /* DROP ZONE */
+    .drop { border: 2px dashed #C8A96E; border-radius: 14px; padding: 26px 20px; text-align: center; cursor: pointer; background: #fff; margin-bottom: 14px; }
+    .drop .ico { font-size: 38px; margin-bottom: 8px; }
+    .drop h3 { font-size: 15px; margin-bottom: 5px; }
+    .drop p { color: #666; font-size: 12px; line-height: 1.5; }
+
+    /* PROGRESS */
+    .prog-box { background: #1C1C1E; color: #fff; border-radius: 12px; padding: 16px; margin-bottom: 14px; text-align: center; display: none; }
+    .prog-bar { height: 4px; background: #333; border-radius: 4px; margin-top: 10px; overflow: hidden; }
+    .prog-fill { height: 100%; background: #C8A96E; border-radius: 4px; transition: width 0.3s; }
+
+    /* COUNT CONFIRM */
+    .count-box { background: #fff; border-radius: 14px; border: 2px solid #C8A96E; padding: 20px; text-align: center; margin-bottom: 14px; display: none; }
+    .count-nb { font-size: 52px; font-weight: bold; color: #C8A96E; margin: 8px 0; }
+
+    /* VIEW TOGGLE */
+    .view-toggle { display: flex; gap: 8px; margin-bottom: 14px; }
+    .view-btn { flex: 1; padding: 8px; border: 1.5px solid #E0D8CC; border-radius: 8px; background: #fff; font-size: 12px; cursor: pointer; color: #666; text-align: center; }
+    .view-btn.on { border-color: #C8A96E; background: #FDF8F0; color: #1C1C1E; font-weight: bold; }
+
+    /* LIVRE CARDS */
+    .lcard { background: #fff; border-radius: 12px; padding: 13px 14px; margin-bottom: 10px; border: 1px solid #E0D8CC; position: relative; }
+    .lcard.vert { border-left: 4px solid #4CAF50; }
+    .lcard.jaune { border-left: 4px solid #FF9800; }
+    .lcard.rouge { border-left: 4px solid #F44336; }
+    .lcard.noir { border-left: 4px solid #555; }
+    .lcard.resolu { border-left: 4px solid #9C27B0; }
+    .lcard .del-btn { position: absolute; top: 10px; right: 10px; background: none; border: none; color: #ddd; font-size: 18px; cursor: pointer; line-height: 1; }
+    .lcard .del-btn:hover { color: #F44336; }
+    .lcard .titre { font-weight: bold; font-size: 14px; margin-bottom: 2px; padding-right: 24px; }
+    .lcard .auteur { color: #555; font-size: 12px; margin-bottom: 2px; }
+    .lcard .isbn { font-family: monospace; color: #888; font-size: 11px; margin-bottom: 6px; }
+    .lcard .metas { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 8px; }
+    .badge { border-radius: 4px; padding: 2px 6px; font-size: 10px; font-weight: bold; }
+    .b-vert { background: #E8F5E9; color: #2E7D32; }
+    .b-jaune { background: #FFF3E0; color: #E65100; }
+    .b-rouge { background: #FFEBEE; color: #C62828; }
+    .b-noir { background: #EEE; color: #555; }
+    .b-cat { background: #F3F0EA; color: #555; }
+    .b-purple { background: #F3E5F5; color: #6A1B9A; }
+
+    /* VALIDATION ZONE */
+    .vzone { background: #FFFBF0; border: 1px solid #FFE082; border-radius: 8px; padding: 12px; margin-top: 8px; }
+    .vzone-title { font-size: 12px; font-weight: bold; color: #5D4037; margin-bottom: 8px; }
+    .choix-list { display: flex; flex-direction: column; gap: 6px; }
+    .choix { background: #fff; border: 1.5px solid #E0D8CC; border-radius: 8px; padding: 10px 12px; cursor: pointer; font-size: 12px; }
+    .choix:hover { border-color: #C8A96E; }
+    .choix.sel { border-color: #4CAF50; background: #E8F5E9; }
+    .choix .ct { font-weight: bold; margin-bottom: 2px; }
+    .choix .cd { color: #888; font-size: 11px; }
+    .choix .ci { font-family: monospace; color: #C8A96E; font-size: 11px; font-weight: bold; margin-top: 2px; }
+    .sep { text-align: center; font-size: 11px; color: #aaa; margin: 8px 0; }
+    .scan-btn { background: #fff; border: 2px dashed #C8A96E; border-radius: 8px; padding: 10px; text-align: center; cursor: pointer; font-size: 12px; color: #C8A96E; font-weight: bold; margin-top: 6px; }
+    .bnf-hint { font-size: 11px; color: #C8A96E; font-style: italic; margin-bottom: 6px; }
+    .bnf-load { text-align: center; padding: 10px; color: #888; font-size: 12px; }
+    .val-box { background: #F3E5F5; border: 1px solid #CE93D8; border-radius: 8px; padding: 12px; margin-top: 8px; }
+    .val-box .vt { font-size: 11px; color: #6A1B9A; font-weight: bold; margin-bottom: 6px; }
+
+    /* SESSION BOX */
+    .sess-box { background: #fff; border-radius: 14px; border: 2px solid #1C1C1E; padding: 18px; margin-top: 14px; display: none; }
+    .sess-box h3 { font-size: 15px; margin-bottom: 14px; text-align: center; }
+
+    /* POST AJOUT */
+    .post-box { background: #E8F5E9; border-radius: 14px; border: 2px solid #4CAF50; padding: 18px; margin-top: 14px; display: none; text-align: center; }
+    .post-box h3 { font-size: 15px; margin-bottom: 14px; color: #2E7D32; }
+
+    /* INVENTAIRE */
+    .inv-wrap { overflow-x: auto; background: #fff; border-radius: 12px; border: 1px solid #E0D8CC; margin-bottom: 14px; }
+    .inv-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    .inv-table th { background: #F7F4EF; padding: 7px 9px; text-align: left; color: #888; font-size: 10px; text-transform: uppercase; border-bottom: 1px solid #E0D8CC; }
+    .inv-table td { padding: 7px 9px; border-bottom: 1px solid #f0ece4; vertical-align: top; }
+    .inv-table .del-cell { width: 28px; text-align: center; }
+
+    /* SPINNER */
+    .spin { display: inline-block; width: 14px; height: 14px; border: 2px solid #C8A96E33; border-top-color: #C8A96E; border-radius: 50%; animation: sp 0.8s linear infinite; vertical-align: middle; margin-right: 5px; }
+    @keyframes sp { to { transform: rotate(360deg); } }
+
+    input[type="file"] { display: none; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="sub">Inventaire Librairie</div>
+  <h1>📚 LibraScan</h1>
+</header>
+
+<div class="tabs" id="mainTabs">
+  <button class="tab-btn active" onclick="showTab('scanTab')">📷 Scanner</button>
+  <button class="tab-btn" onclick="showTab('invTab')">📋 Inventaire (<span id="tabCount">0</span>)</button>
+</div>
+
+<!-- ═══════════════════════════════
+     ÉCRAN 1 — CLÉ API
+═══════════════════════════════ -->
+<div class="screen active" id="sc-api">
+  <div class="steps">
+    <div class="step active">1</div><div class="step-line"></div>
+    <div class="step pending">2</div><div class="step-line"></div>
+    <div class="step pending">3</div>
+  </div>
+  <div class="card">
+    <h2 style="font-size:17px;margin-bottom:10px">🔑 Clé API Anthropic</h2>
+    <p style="font-size:13px;color:#555;line-height:1.6;margin-bottom:14px">
+      LibraScan utilise l'IA Claude pour analyser vos photos d'étagères.<br>
+      Chaque libraire utilise sa propre clé — vous contrôlez votre usage.
+    </p>
+    <a href="https://console.anthropic.com" target="_blank" class="btn btn-outline" style="margin-bottom:14px">
+      1. Créer mon compte Anthropic →
+    </a>
+    <div class="field">
+      <label>2. Collez votre clé API</label>
+      <input type="password" id="apiKey" placeholder="sk-ant-..." autocomplete="off">
+    </div>
+    <div class="alert alert-err" id="apiErr"></div>
+    <div class="alert alert-ok" id="apiOk"></div>
+    <button class="btn btn-gold" onclick="validerCle()">✓ Valider ma clé</button>
+    <p style="font-size:11px;color:#aaa;text-align:center;margin-top:6px">Sauvegardée uniquement sur votre appareil</p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
+     ÉCRAN 2 — RÉFÉRENTIEL
+═══════════════════════════════ -->
+<div class="screen" id="sc-ref">
+  <div class="steps">
+    <div class="step done">✓</div><div class="step-line done"></div>
+    <div class="step active">2</div><div class="step-line"></div>
+    <div class="step pending">3</div>
+  </div>
+
+  <div class="alert alert-warn" id="sessAlert">
+    📂 Inventaire en cours : <strong id="sessNb">0</strong> livres sauvegardés.
+    <div class="btn-row" style="margin-top:8px">
+      <button class="btn-green" onclick="reprendreSession()">Reprendre</button>
+      <button class="btn-red" onclick="nouvelleSession()">Nouveau</button>
+    </div>
+  </div>
+
+  <div class="drop" id="dropRef" onclick="document.getElementById('fileRef').click()">
+    <div class="ico">📂</div>
+    <h3>Charger le référentiel</h3>
+    <p>Fichier Excel ou CSV avec vos références et ISBN</p>
+    <div style="margin-top:12px"><span class="btn-sm">Choisir un fichier</span></div>
+  </div>
+  <input type="file" id="fileRef" accept=".xlsx,.xls,.csv">
+  <div class="alert alert-err" id="refErr"></div>
+
+  <div id="refStats" style="display:none">
+    <div class="stat-grid">
+      <div class="stat-box"><div class="n" id="sTotal">0</div><div class="l">Références</div></div>
+      <div class="stat-box"><div class="n" id="sISBN">0</div><div class="l">Avec ISBN</div></div>
+      <div class="stat-box"><div class="n" id="sCats">0</div><div class="l">Catégories</div></div>
+    </div>
+    <div class="sec-title">Catégories détectées</div>
+    <div class="tags" id="catTags"></div>
+    <button class="btn btn-dark" onclick="goScan()">✅ Commencer le scan →</button>
+    <button class="btn-danger" style="width:100%;margin-top:6px;display:block;text-align:center" onclick="resetRef()">Changer de fichier</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
+     ÉCRAN 3 — SCAN + INVENTAIRE
+═══════════════════════════════ -->
+<div class="screen" id="sc-scan">
+
+  <!-- TAB SCAN -->
+  <div id="scanTab">
+
+    <!-- Photo zone -->
+    <div class="drop" id="dropScan">
+      <div class="ico">📸</div>
+      <h3>Photographier une étagère</h3>
+      <p>Prenez une photo de face. Plusieurs étagères possibles.</p>
+      <div style="margin-top:12px;display:flex;gap:8px;justify-content:center">
+        <span class="btn-sm" onclick="document.getElementById('fCam').click()">📷 Caméra</span>
+        <span class="btn-sm" style="background:#fff;border:1.5px solid #C8A96E;color:#1C1C1E" onclick="document.getElementById('fGal').click()">🖼️ Galerie</span>
+      </div>
+    </div>
+    <input type="file" id="fCam" accept="image/*" capture="environment">
+    <input type="file" id="fGal" accept="image/*">
+
+    <!-- Preview -->
+    <div id="prevBox" style="display:none;margin-bottom:12px;border-radius:12px;overflow:hidden;border:1px solid #E0D8CC">
+      <img id="prevImg" style="width:100%;display:block;max-height:200px;object-fit:cover">
+    </div>
+
+    <!-- Progress -->
+    <div class="prog-box" id="progBox">
+      <div><span class="spin"></span><span id="progMsg">Analyse...</span></div>
+      <div class="prog-bar"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+      <div style="font-size:11px;color:#aaa;margin-top:5px" id="progDetail"></div>
+    </div>
+
+    <!-- Count confirm -->
+    <div class="count-box" id="countBox">
+      <p style="font-size:13px;color:#555">L'IA a détecté ce nombre de livres :</p>
+      <div class="count-nb" id="countNb">0</div>
+      <p style="font-size:13px;color:#555;margin-bottom:14px">Est-ce correct ?</p>
+      <div class="btn-row">
+        <button class="btn-green" onclick="confirmerNombre()">✅ Oui, correct</button>
+        <button class="btn-red" onclick="demanderRescan()">🔄 Scanner à nouveau</button>
+      </div>
+      <div id="rescanForm" style="display:none;margin-top:12px">
+        <div class="field">
+          <label>Nombre de livres réel sur l'étagère</label>
+          <input type="number" id="nbAttendu" placeholder="Ex: 20" min="1" max="200">
+        </div>
+        <button class="btn btn-gold" onclick="relancerAvecNb()">📸 Reprendre la photo</button>
+      </div>
+    </div>
+
+    <!-- Résultats -->
+    <div id="resultats" style="display:none">
+      <div class="alert alert-ok" id="summaryAlert" style="display:block"></div>
+
+      <div class="view-toggle">
+        <button class="view-btn on" id="vBtnCouleur" onclick="setVue('couleur')">🎨 Par couleur</button>
+        <button class="view-btn" id="vBtnPosition" onclick="setVue('position')">📍 Par position</button>
+      </div>
+
+      <!-- Vue couleur -->
+      <div id="vueCouleur">
+        <div id="secVert" style="display:none"><div class="sec-title">🟢 Identifiés automatiquement</div><div id="listVert"></div></div>
+        <div id="secJaune" style="display:none"><div class="sec-title">🟡 Plusieurs éditions possibles</div><div id="listJaune"></div></div>
+        <div id="secRouge" style="display:none"><div class="sec-title">🔴 Absents du référentiel</div><div id="listRouge"></div></div>
+        <div id="secNoir" style="display:none"><div class="sec-title">⚫ Non identifiables</div><div id="listNoir"></div></div>
+      </div>
+
+      <!-- Vue position -->
+      <div id="vuePosition" style="display:none">
+        <div id="listPos"></div>
+      </div>
+
+      <!-- Session buttons -->
+      <div class="sess-box" id="sessBox">
+        <h3>Que faire maintenant ?</h3>
+        <button class="btn btn-dark" onclick="ajouterEtagere()">✅ Ajouter l'étagère à l'inventaire</button>
+        <button class="btn btn-outline" onclick="recommencer()">🔄 Scanner à nouveau cette étagère</button>
+      </div>
+    </div>
+
+    <!-- Post ajout -->
+    <div class="post-box" id="postBox">
+      <h3>✅ Étagère ajoutée à l'inventaire !</h3>
+      <button class="btn btn-dark" onclick="continuer()" style="margin-bottom:8px">📸 Scanner une nouvelle étagère</button>
+      <button class="btn btn-outline" onclick="cloturer()">💾 Clôturer la session</button>
+    </div>
+
+    <div class="alert alert-err" id="scanErr" style="display:none"></div>
+
+    <!-- Conseils -->
+    <div class="card" id="conseilsCard">
+      <div class="sec-title">Conseils</div>
+      <div style="font-size:12px;color:#555;line-height:2.2">
+        💡 Photo de face, à hauteur des livres<br>
+        🔆 Bonne lumière = meilleure reconnaissance<br>
+        📐 Cadrez toute l'étagère<br>
+        📚 Plusieurs étagères : de haut en bas dans la photo
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB INVENTAIRE -->
+  <div id="invTab" style="display:none">
+    <div id="invVide" style="text-align:center;padding:50px 20px;color:#aaa">
+      <div style="font-size:40px;margin-bottom:12px">📭</div>
+      <div>Aucun livre inventorié pour le moment</div>
+    </div>
+    <div id="invContenu" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div style="font-size:13px;color:#666"><strong id="invNb">0</strong> livre(s)</div>
+        <button class="btn-danger" onclick="viderInv()">Tout effacer</button>
+      </div>
+      <div class="inv-wrap">
+        <table class="inv-table">
+          <thead>
+            <tr><th>✕</th><th>ISBN</th><th>Titre</th><th>Auteur</th><th>Éditeur</th><th>Cat.</th><th>Conf.</th></tr>
+          </thead>
+          <tbody id="invBody"></tbody>
+        </table>
+      </div>
+      <button class="btn btn-dark" onclick="exportXLSX()" style="margin-bottom:8px">↓ Exporter Excel</button>
+      <button class="btn btn-outline" onclick="exportCSV()">↓ Exporter CSV</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// ÉTAT GLOBAL
+// ═══════════════════════════════════════════════════
+const G = {
+  apiKey: localStorage.getItem('ls_key') || '',
+  ref: [],                          // référentiel chargé
+  inv: JSON.parse(localStorage.getItem('ls_inv') || '[]'), // inventaire persistant
+  livres: [],                       // livres de l'étagère en cours
+  nbAttendu: null,                  // nb attendu pour rescan
+  vue: 'couleur',                   // vue active
+  _p1: null,                        // données passe 1
+  _b64: null,                       // image compressée
+};
+
+const BNF = 'https://catalogue.bnf.fr/api/SRU?version=1.2&operation=searchRetrieve&recordSchema=dublincore&maximumRecords=8';
+
+// ═══════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  if (G.apiKey) goRef();
+  if (G.inv.length > 0) {
+    showEl('sessAlert');
+    document.getElementById('sessNb').textContent = G.inv.length;
+  }
+  majInv();
+
+  document.getElementById('fileRef').addEventListener('change', e => { if (e.target.files[0]) chargerRef(e.target.files[0]); });
+  document.getElementById('fCam').addEventListener('change', e => { if (e.target.files[0]) lancerAnalyse(e.target.files[0]); });
+  document.getElementById('fGal').addEventListener('change', e => { if (e.target.files[0]) lancerAnalyse(e.target.files[0]); });
+
+  const dz = document.getElementById('dropRef');
+  dz.addEventListener('dragover', e => e.preventDefault());
+  dz.addEventListener('drop', e => { e.preventDefault(); if (e.dataTransfer.files[0]) chargerRef(e.dataTransfer.files[0]); });
+});
+
+// ═══════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.getElementById('mainTabs').style.display = id === 'sc-scan' ? 'flex' : 'none';
+}
+function goRef() { showScreen('sc-ref'); }
+function goScan() { showScreen('sc-scan'); }
+
+function showTab(id) {
+  ['scanTab','invTab'].forEach(t => {
+    document.getElementById(t).style.display = t === id ? 'block' : 'none';
+  });
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    b.classList.toggle('active', (i===0&&id==='scanTab')||(i===1&&id==='invTab'));
+  });
+}
+
+function showEl(id) { const e = document.getElementById(id); if(e) e.style.display='block'; }
+function hideEl(id) { const e = document.getElementById(id); if(e) e.style.display='none'; }
+
+// ═══════════════════════════════════════════════════
+// SESSION
+// ═══════════════════════════════════════════════════
+function reprendreSession() { hideEl('sessAlert'); goScan(); showTab('invTab'); }
+function nouvelleSession() {
+  if (!confirm('Supprimer l\'inventaire en cours ?')) return;
+  G.inv = []; sauver(); majInv(); hideEl('sessAlert');
+}
+function sauver() {
+  localStorage.setItem('ls_inv', JSON.stringify(G.inv));
+  document.getElementById('tabCount').textContent = G.inv.length;
+}
+
+// ═══════════════════════════════════════════════════
+// ÉTAPE 1 — CLÉ API
+// ═══════════════════════════════════════════════════
+async function validerCle() {
+  const key = document.getElementById('apiKey').value.trim();
+  if (!key.startsWith('sk-')) { alertShow('apiErr', 'La clé doit commencer par sk-'); return; }
+  alertHide('apiErr');
+  const btn = document.querySelector('#sc-api .btn-gold');
+  btn.innerHTML = '<span class="spin"></span>Vérification...';
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 10, messages: [{ role:'user', content:'ok' }] })
+    });
+    if (r.ok || r.status===400) {
+      localStorage.setItem('ls_key', key); G.apiKey = key;
+      alertShow('apiOk', '✅ Clé valide !'); document.getElementById('apiOk').textContent = '✅ Clé valide !';
+      setTimeout(goRef, 800);
+    } else { alertShow('apiErr', 'Clé invalide. Vérifiez sur console.anthropic.com'); }
+  } catch(e) { alertShow('apiErr', 'Erreur réseau. Vérifiez votre connexion.'); }
+  btn.innerHTML = '✓ Valider ma clé';
+}
+
+// ═══════════════════════════════════════════════════
+// ÉTAPE 2 — RÉFÉRENTIEL
+// ═══════════════════════════════════════════════════
+const COLS = {
+  isbn:['code article','isbn','ean','code'], titre:['titre','title','nom'],
+  auteur:['auteur','author','auteurs'], editeur:['editeur','éditeur','publisher'],
+  cat:['nom catégorie','nom categorie','catégorie','categorie','category'],
+  qte:['qté','qte','quantite','quantité','stock','qty']
+};
+function colIdx(headers, keys) {
+  for (const k of keys) { const i = headers.findIndex(h => h.toLowerCase().trim()===k); if(i!==-1) return i; }
+  return -1;
+}
+
+function resetRef() { G.ref=[]; hideEl('refStats'); document.getElementById('dropRef').style.display='block'; }
+
+function chargerRef(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      let rows=[];
+      if (ext==='csv') rows = e.target.result.split('\n').map(l=>l.split(';').map(c=>c.replace(/^"|"$/g,'').trim()));
+      else { const wb=XLSX.read(e.target.result,{type:'array'}); rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''}); }
+      buildRef(rows, file.name);
+    } catch(err) { alertShow('refErr', 'Erreur lecture : '+err.message); }
+  };
+  ext==='csv' ? reader.readAsText(file,'UTF-8') : reader.readAsArrayBuffer(file);
+}
+
+function buildRef(rows, fname) {
+  const h = rows[0].map(x=>String(x).toLowerCase().trim());
+  const iISBN=colIdx(h,COLS.isbn), iTitre=colIdx(h,COLS.titre), iAuteur=colIdx(h,COLS.auteur);
+  const iEdit=colIdx(h,COLS.editeur), iCat=colIdx(h,COLS.cat), iQte=colIdx(h,COLS.qte);
+  if (iTitre===-1) { alertShow('refErr','Colonne Titre introuvable.'); return; }
+
+  const refs=[]; const cats={};
+  for (let i=1; i<rows.length; i++) {
+    const row=rows[i]; if(!row||row.every(c=>!c)) continue;
+    const titre=String(row[iTitre]||'').trim(); if(!titre) continue;
+    const isbn=iISBN!==-1?String(row[iISBN]||'').trim():'';
+    const auteur=iAuteur!==-1?String(row[iAuteur]||'').trim():'';
+    const editeur=iEdit!==-1?String(row[iEdit]||'').trim():'';
+    const cat=iCat!==-1?String(row[iCat]||'').trim():'';
+    const qte=iQte!==-1?String(row[iQte]||'').trim():'';
+    refs.push({isbn,titre,auteur,editeur,cat,qte});
+    if(cat) cats[cat]=(cats[cat]||0)+1;
+  }
+  G.ref = refs;
+  document.getElementById('sTotal').textContent = refs.length;
+  document.getElementById('sISBN').textContent = refs.filter(r=>r.isbn&&r.isbn.length>=10).length;
+  document.getElementById('sCats').textContent = Object.keys(cats).length;
+  document.getElementById('catTags').innerHTML = Object.entries(cats).sort((a,b)=>b[1]-a[1])
+    .map(([c,n])=>`<div class="tag">${c}<span>${n}</span></div>`).join('');
+  document.getElementById('dropRef').innerHTML = `<div class="ico">✅</div><h3>${fname}</h3><p style="color:#2e7d32;font-weight:bold">${refs.length} références chargées</p>`;
+  showEl('refStats');
+}
+
+// ═══════════════════════════════════════════════════
+// UTILITAIRES
+// ═══════════════════════════════════════════════════
+function norm(s) {
+  return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim();
+}
+function esc(s) { return (s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'\\"'); }
+function trunc(s,n) { return s&&s.length>n?s.slice(0,n)+'…':(s||'—'); }
+function today() { return new Date().toISOString().slice(0,10); }
+function now() { return new Date().toLocaleString('fr-FR'); }
+
+function compresser(file, maxW=1400, q=0.80) {
+  return new Promise(res => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let w=img.width, h=img.height;
+        if(w>maxW){h=Math.round(h*maxW/w);w=maxW;}
+        canvas.width=w; canvas.height=h;
+        canvas.getContext('2d').drawImage(img,0,0,w,h);
+        const dataUrl=canvas.toDataURL('image/jpeg',q);
+        res({b64:dataUrl.split(',')[1], dataUrl});
+      };
+      img.src=e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function api(messages, maxTok=4000) {
+  const r = await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':G.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:maxTok,messages})
+  });
+  if(!r.ok) throw new Error('API '+r.status);
+  const d=await r.json();
+  return d.content?.find(b=>b.type==='text')?.text||'';
+}
+
+function parseJ(txt) {
+  try { return JSON.parse(txt.trim()); } catch {
+    const m=txt.match(/\{[\s\S]*\}/); if(m) try{return JSON.parse(m[0]);}catch{}
+    return null;
+  }
+}
+
+function prog(pct, msg, detail='') {
+  document.getElementById('progFill').style.width=pct+'%';
+  document.getElementById('progMsg').textContent=msg;
+  document.getElementById('progDetail').textContent=detail;
+}
+
+function alertShow(id,msg) { const e=document.getElementById(id); if(e){e.textContent=msg;e.style.display='block';} }
+function alertHide(id) { const e=document.getElementById(id); if(e) e.style.display='none'; }
+
+// ═══════════════════════════════════════════════════
+// MATCHING LOCAL
+// ═══════════════════════════════════════════════════
+function motsSignificatifs(str, minLen=4) {
+  return norm(str).split(' ').filter(m=>m.length>=minLen);
+}
+
+function matcherLivre(livre) {
+  const motsTitre = motsSignificatifs(livre.titre||'', 4);
+  const motsAuteur = motsSignificatifs(livre.auteur||'', 3);
+
+  if (motsTitre.length===0) return { confiance:'NOIR', candidats:[] };
+
+  // Chercher toutes les entrées avec même titre ET même auteur
+  const matches = G.ref.filter(ref => {
+    const tR = norm(ref.titre||'');
+    const aR = norm(ref.auteur||'');
+    // Vérif titre : tous les mots significatifs du titre détecté doivent être dans le titre ref
+    const titreOK = motsTitre.every(m => tR.includes(m));
+    // Vérif auteur : au moins un mot de l'auteur détecté doit être dans l'auteur ref
+    const auteurOK = motsAuteur.length===0 || motsAuteur.some(m => aR.includes(m));
+    return titreOK && auteurOK;
+  });
+
+  if (matches.length===0) {
+    return { confiance:'ROUGE', candidats:[] };
+  } else if (matches.length===1) {
+    return { confiance:'VERT', ref:matches[0], candidats:[] };
+  } else {
+    return { confiance:'JAUNE', candidats:matches.slice(0,6) };
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// ÉTAPE 3 — ANALYSE PHOTO
+// ═══════════════════════════════════════════════════
+async function lancerAnalyse(file) {
+  // Reset UI
+  hideEl('resultats'); hideEl('countBox'); hideEl('postBox'); hideEl('sessBox');
+  hideEl('scanErr'); document.getElementById('conseilsCard').style.display='block';
+  showEl('progBox'); prog(5,'Compression de l\'image...');
+
+  const {b64, dataUrl} = await compresser(file);
+  G._b64 = b64;
+  document.getElementById('prevImg').src=dataUrl;
+  showEl('prevBox');
+
+  (async()=>{
+    try {
+      prog(15,'Passe 1 : détection des livres...','Identification des tranches sur la photo');
+
+      const hint = G.nbAttendu ? `\nIMPORTANT : il y a exactement ${G.nbAttendu} livres sur cette photo. Assure-toi de tous les détecter.` : '';
+
+      const p1txt = await api([{role:'user',content:[
+        {type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}},
+        {type:'text',text:`Tu es un expert en identification de livres pour librairie. Analyse cette photo d'étagère.${hint}
+
+Détecte TOUS les livres visibles. Pour chaque livre :
+- position : numéro de gauche à droite (1,2,3...)
+- etagere : numéro d'étagère de haut en bas (1=la plus haute)
+- titre : tel que lisible sur la tranche
+- auteur : tel que lisible
+- editeur_reel : déduit de la charte graphique/logo (PAS le texte brut). Ex: logo DiS=De Saxus, carré blanc=Folio, etc.
+- collection : nom de collection si visible (Folio, Points, Babel, 10/18, GF, Gallmeister, Totem...)
+- numero_col : numéro de collection si visible (ex: "162","621"...)
+- format : POCHE (petit ~11x18cm) / BROCHE (~14x21cm) / RELIE (couv.rigide) / COLLECTOR
+- lisibilite : BON / MOYEN / FAIBLE
+
+Réponds UNIQUEMENT en JSON valide sans backticks :
+{"nb_livres":15,"nb_etageres":2,"livres":[{"position":1,"etagere":1,"titre":"...","auteur":"...","editeur_reel":"...","collection":"Folio","numero_col":"162","format":"POCHE","lisibilite":"BON"}]}`}
+      ]}]);
+
+      const p1 = parseJ(p1txt);
+      if (!p1||!p1.livres) throw new Error('Analyse échouée — essayez avec une meilleure photo.');
+
+      G.nbAttendu = null;
+      G._p1 = p1;
+
+      hideEl('progBox');
+      document.getElementById('countNb').textContent = p1.nb_livres || p1.livres.length;
+      showEl('countBox');
+
+    } catch(err) {
+      hideEl('progBox');
+      alertShow('scanErr','⚠️ '+err.message);
+    }
+  })();
+}
+
+// ═══════════════════════════════════════════════════
+// CONFIRMATION NOMBRE
+// ═══════════════════════════════════════════════════
+function confirmerNombre() {
+  hideEl('countBox');
+  showEl('progBox');
+  analyserPasse2(G._p1);
+}
+
+function demanderRescan() {
+  showEl('rescanForm');
+}
+
+function relancerAvecNb() {
+  const nb = parseInt(document.getElementById('nbAttendu').value);
+  if (!nb||nb<1) { alert('Entrez un nombre valide.'); return; }
+  G.nbAttendu = nb;
+  hideEl('countBox'); hideEl('rescanForm');
+  document.getElementById('fCam').value='';
+  document.getElementById('fGal').value='';
+  document.getElementById('fCam').click();
+}
+
+// ═══════════════════════════════════════════════════
+// PASSE 2 — MATCHING LOCAL
+// ═══════════════════════════════════════════════════
+async function analyserPasse2(p1) {
+  prog(30,'Matching des livres...','Recherche dans le référentiel');
+
+  const livres = p1.livres.map((l, i) => {
+    // Assigner position par défaut si manquante
+    if (!l.position) l.position = i+1;
+    if (!l.etagere) l.etagere = 1;
+
+    prog(30+Math.round((i/p1.livres.length)*55), `Livre ${i+1}/${p1.livres.length}...`, l.titre||'');
+
+    // Livre illisible
+    if (l.lisibilite==='FAIBLE' && !l.titre) {
+      return { ...l, _idx:i, confiance:'NOIR', isbn:'', titre_ref:'', auteur_ref:'', cat:'', editeur_ref:'' };
+    }
+
+    const m = matcherLivre(l);
+
+    if (m.confiance==='VERT') {
+      return { ...l, _idx:i, confiance:'VERT', isbn:m.ref.isbn, titre_ref:m.ref.titre, auteur_ref:m.ref.auteur, cat:m.ref.cat, editeur_ref:m.ref.editeur, candidats:[] };
+    } else if (m.confiance==='JAUNE') {
+      return { ...l, _idx:i, confiance:'JAUNE', isbn:'', titre_ref:l.titre, auteur_ref:l.auteur, cat:m.candidats[0]?.cat||'', editeur_ref:'', candidats:m.candidats };
+    } else {
+      return { ...l, _idx:i, confiance:'ROUGE', isbn:'', titre_ref:l.titre, auteur_ref:l.auteur, cat:'', editeur_ref:'', candidats:[] };
+    }
+  });
+
+  prog(100,'Analyse terminée !');
+  G.livres = livres;
+
+  // Vérification nombre annoncé vs trouvé
+  const nbAnnonce = G._p1.nb_livres || G._p1.livres.length;
+  const nbTrouve = livres.length;
+
+  if (nbAnnonce === nbTrouve) {
+    setTimeout(()=>{ hideEl('progBox'); afficherResultats(); },300);
+  } else {
+    // Retraitement
+    prog(90, `Vérification : ${nbTrouve} trouvés vs ${nbAnnonce} annoncés...`, 'Retraitement en cours');
+    await retraiterManquants(livres, nbAnnonce, 1);
+  }
+}
+
+async function retraiterManquants(livresActuels, nbAttendu, tentative) {
+  if (tentative > 2) {
+    // Abandon — demander rescan
+    hideEl('progBox');
+    G.livres = livresActuels;
+    afficherResultats();
+    setTimeout(()=>{
+      if (confirm(`⚠️ ${livresActuels.length} livres identifiés sur ${nbAttendu} attendus après ${tentative-1} tentative(s).
+
+Voulez-vous rescanner l'étagère ?`)) {
+        resetScan();
+        G.nbAttendu = nbAttendu;
+        document.getElementById('fCam').click();
+      }
+    }, 300);
+    return;
+  }
+
+  try {
+    prog(90, `Tentative ${tentative}/2 : recherche des livres manquants...`, `${livresActuels.length} trouvés, ${nbAttendu} attendus`);
+
+    const titresActuels = livresActuels.map(l => l.titre||'?').join(', ');
+    const nbManquants = nbAttendu - livresActuels.length;
+
+    const prompt = `Tu as analysé une photo d'étagère et annoncé ${nbAttendu} livres, mais seulement ${livresActuels.length} ont été identifiés.
+
+Livres déjà identifiés : ${titresActuels}
+
+Il manque ${nbManquants} livre(s). Analyse à nouveau la photo et identifie UNIQUEMENT les livres manquants qui n'ont pas encore été listés.
+
+Réponds UNIQUEMENT en JSON valide sans backticks :
+{"livres_manquants":[{"position":16,"etagere":1,"titre":"...","auteur":"...","editeur_reel":"...","collection":"...","numero_col":"...","format":"POCHE","lisibilite":"BON"}]}`;
+
+    const txt = await api([{role:'user',content:[
+      {type:'image',source:{type:'base64',media_type:'image/jpeg',data:G._b64}},
+      {type:'text',text:prompt}
+    ]}]);
+
+    const parsed = parseJ(txt);
+    const manquants = parsed?.livres_manquants || [];
+
+    if (manquants.length > 0) {
+      // Matcher les manquants
+      const nouveaux = manquants.map((l, i) => {
+        if (!l.position) l.position = livresActuels.length + i + 1;
+        if (!l.etagere) l.etagere = 1;
+        const m = matcherLivre(l);
+        const idx = livresActuels.length + i;
+        if (m.confiance==='VERT') return {...l, _idx:idx, confiance:'VERT', isbn:m.ref.isbn, titre_ref:m.ref.titre, auteur_ref:m.ref.auteur, cat:m.ref.cat, editeur_ref:m.ref.editeur, candidats:[]};
+        if (m.confiance==='JAUNE') return {...l, _idx:idx, confiance:'JAUNE', isbn:'', titre_ref:l.titre, auteur_ref:l.auteur, cat:m.candidats[0]?.cat||'', editeur_ref:'', candidats:m.candidats};
+        return {...l, _idx:idx, confiance:'ROUGE', isbn:'', titre_ref:l.titre, auteur_ref:l.auteur, cat:'', editeur_ref:'', candidats:[]};
+      });
+
+      const tousLivres = [...livresActuels, ...nouveaux];
+
+      if (tousLivres.length >= nbAttendu) {
+        setTimeout(()=>{ hideEl('progBox'); G.livres = tousLivres; afficherResultats(); },300);
+      } else {
+        await retraiterManquants(tousLivres, nbAttendu, tentative+1);
+      }
+    } else {
+      await retraiterManquants(livresActuels, nbAttendu, tentative+1);
+    }
+  } catch(e) {
+    hideEl('progBox');
+    G.livres = livresActuels;
+    afficherResultats();
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// AFFICHAGE RÉSULTATS
+// ═══════════════════════════════════════════════════
+function afficherResultats() {
+  const verts=G.livres.filter(l=>l.confiance==='VERT');
+  const jaunes=G.livres.filter(l=>l.confiance==='JAUNE');
+  const rouges=G.livres.filter(l=>l.confiance==='ROUGE');
+  const noirs=G.livres.filter(l=>l.confiance==='NOIR');
+
+  document.getElementById('summaryAlert').textContent =
+    `✅ ${verts.length} auto · 🟡 ${jaunes.length} à valider · 🔴 ${rouges.length} absents · ⚫ ${noirs.length} illisibles`;
+
+  // Vue couleur
+  document.getElementById('secVert').style.display = verts.length?'block':'none';
+  document.getElementById('listVert').innerHTML = verts.map(l=>cardVert(l)).join('');
+  document.getElementById('secJaune').style.display = jaunes.length?'block':'none';
+  document.getElementById('listJaune').innerHTML = jaunes.map(l=>cardJaune(l)).join('');
+  document.getElementById('secRouge').style.display = rouges.length?'block':'none';
+  document.getElementById('listRouge').innerHTML = rouges.map(l=>cardRouge(l)).join('');
+  document.getElementById('secNoir').style.display = noirs.length?'block':'none';
+  document.getElementById('listNoir').innerHTML = noirs.map(l=>cardNoir(l)).join('');
+
+  // Vue position
+  const tries = [...G.livres].sort((a,b)=>(a.etagere||1)-(b.etagere||1)||(a.position||0)-(b.position||0));
+  let posHtml=''; let etActuelle=null;
+  tries.forEach(l=>{
+    const et=l.etagere||1;
+    if(et!==etActuelle){posHtml+=`<div class="sec-title">Étagère ${et}</div>`;etActuelle=et;}
+    posHtml+=cardPos(l);
+  });
+  document.getElementById('listPos').innerHTML=posHtml;
+
+  setVue('couleur');
+  showEl('resultats');
+  showEl('sessBox');
+  hideEl('conseilsCard');
+}
+
+function setVue(v) {
+  G.vue=v;
+  document.getElementById('vueCouleur').style.display=v==='couleur'?'block':'none';
+  document.getElementById('vuePosition').style.display=v==='position'?'block':'none';
+  document.getElementById('vBtnCouleur').classList.toggle('on',v==='couleur');
+  document.getElementById('vBtnPosition').classList.toggle('on',v==='position');
+}
+
+// ═══════════════════════════════════════════════════
+// GÉNÉRATION DES CARTES
+// ═══════════════════════════════════════════════════
+function cardVert(l) {
+  return `<div class="lcard vert" id="c${l._idx}">
+    <div class="titre">${l.titre_ref||l.titre||'?'}</div>
+    <div class="auteur">✍️ ${l.auteur_ref||l.auteur||'—'}</div>
+    <div class="isbn">ISBN : ${l.isbn||'—'}</div>
+    <div class="metas">
+      ${l.cat?`<span class="badge b-cat">${l.cat}</span>`:''}
+      ${l.format?`<span class="badge b-cat">${l.format}</span>`:''}
+      ${l.editeur_ref?`<span class="badge b-cat">${l.editeur_ref}</span>`:''}
+      <span class="badge b-vert">🟢 Auto</span>
+    </div>
+  </div>`;
+}
+
+function cardPos(l) {
+  const cls={VERT:'vert',JAUNE:'jaune',ROUGE:'rouge',NOIR:'noir'}[l.confiance]||'rouge';
+  const bdg={VERT:'b-vert',JAUNE:'b-jaune',ROUGE:'b-rouge',NOIR:'b-noir'}[l.confiance]||'b-rouge';
+  const ico={VERT:'🟢',JAUNE:'🟡',ROUGE:'🔴',NOIR:'⚫'}[l.confiance]||'🔴';
+  return `<div class="lcard ${cls}" id="cp${l._idx}">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div style="flex:1">
+        <div class="titre" style="padding-right:0">${l.titre_ref||l.titre||'?'}</div>
+        <div class="auteur">✍️ ${l.auteur_ref||l.auteur||'—'}</div>
+        ${l.isbn?`<div class="isbn">ISBN : ${l.isbn}</div>`:''}
+        <div class="metas" style="margin-top:4px">
+          ${l.cat?`<span class="badge b-cat">${l.cat}</span>`:''}
+          ${l.format?`<span class="badge b-cat">${l.format}</span>`:''}
+          <span class="badge ${bdg}">${ico}</span>
+        </div>
+      </div>
+    </div>
+    <div id="cpv${l._idx}">${zoneValidation(l)}</div>
+  </div>`;
+}
+
+function cardJaune(l) {
+  return `<div class="lcard jaune" id="c${l._idx}">
+    <div class="titre">${l.titre_ref||l.titre||'?'}</div>
+    <div class="auteur">✍️ ${l.auteur_ref||l.auteur||'—'}</div>
+    <div class="metas">
+      ${l.format?`<span class="badge b-cat">${l.format}</span>`:''}
+      ${l.collection?`<span class="badge b-cat">${l.collection}</span>`:''}
+      <span class="badge b-jaune">🟡 ${l.candidats.length} éditions</span>
+    </div>
+    <div id="cv${l._idx}">${zoneValidation(l)}</div>
+  </div>`;
+}
+
+function cardRouge(l) {
+  return `<div class="lcard rouge" id="c${l._idx}">
+    ${l.titre ? `
+    <div class="titre">${l.titre}</div>
+    <div class="auteur">✍️ ${l.auteur||'—'}</div>
+    <div class="metas">
+      ${l.format?`<span class="badge b-cat">${l.format}</span>`:''}
+      ${l.collection?`<span class="badge b-cat">${l.collection}</span>`:''}
+      <span class="badge b-rouge">🔴 Absent</span>
+    </div>` : `
+    <div class="titre" style="color:#aaa;font-style:italic">Titre non identifié</div>
+    <div class="metas"><span class="badge b-rouge">🔴 Illisible</span></div>`}
+    <div id="cv${l._idx}">${zoneValidation(l)}</div>
+  </div>`;
+}
+
+function cardNoir(l) {
+  return `<div class="lcard noir" id="c${l._idx}">
+    <div class="titre" style="color:#aaa;font-style:italic">Livre non identifiable</div>
+    <div class="metas"><span class="badge b-noir">⚫ Tranche illisible</span></div>
+    <div id="cv${l._idx}">${zoneValidation(l)}</div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════
+// ZONES DE VALIDATION (générées selon confiance)
+// ═══════════════════════════════════════════════════
+function zoneValidation(l) {
+  if (l.confiance==='VERT') return '';
+
+  if (l.confiance==='JAUNE') {
+    return `<div class="vzone">
+      <div class="vzone-title">Ce livre est-il bien identifié ?</div>
+      <div class="btn-row">
+        <button class="btn-green" onclick="jOui(${l._idx})">✅ C'est juste</button>
+        <button class="btn-red" onclick="jNon(${l._idx})">❌ Ce n'est pas ça</button>
+      </div>
+      <div id="js${l._idx}" style="display:none"></div>
+    </div>`;
+  }
+
+  if (l.confiance==='ROUGE') {
+    return `<div class="vzone">
+      <div class="vzone-title">${l.titre ? 'Ce livre est-il bien identifié ?' : 'Livre non identifié'}</div>
+      ${l.titre ? `<div class="btn-row">
+        <button class="btn-green" onclick="rOui(${l._idx})">✅ C'est juste</button>
+        <button class="btn-red" onclick="rNon(${l._idx})">❌ Ce n'est pas ça</button>
+      </div>` : ''}
+      <div id="js${l._idx}">${l.titre ? '' : scanISBNhtml(l._idx)}</div>
+    </div>`;
+  }
+
+  if (l.confiance==='NOIR') {
+    return `<div class="vzone">
+      <div class="vzone-title">Scanner le code-barres ou saisir l'ISBN</div>
+      ${scanISBNhtml(l._idx)}
+    </div>`;
+  }
+  return '';
+}
+
+function scanISBNhtml(idx) {
+  return `<div class="scan-btn" onclick="scannerCB(${idx})">📷 Scanner le code-barres ISBN</div>
+  <div class="sep">— ou —</div>
+  <button class="btn-link" style="display:block;width:100%;text-align:center" onclick="saisirISBN(${idx})">Saisir l'ISBN manuellement</button>`;
+}
+
+// ═══════════════════════════════════════════════════
+// LOGIQUE JAUNE
+// ═══════════════════════════════════════════════════
+function jOui(idx) {
+  const l = G.livres.find(x=>x._idx===idx);
+  if (!l) return;
+  // Masquer boutons confirmation
+  const zone = document.getElementById(`js${idx}`);
+  const card = document.getElementById(`c${idx}`);
+  if (card) { const br=card.querySelector('.btn-row'); if(br) br.style.display='none'; }
+
+  // Afficher éditions référentiel + options BNF
+  const candidatsHtml = l.candidats.map((c,i)=>
+    `<div class="choix" id="jc${idx}_${i}" onclick="selJaune(${idx},${i},'${esc(c.isbn)}','${esc(c.titre)}','${esc(c.auteur)}','${esc(c.editeur)}','${esc(c.cat)}')">
+      <div class="ct">${c.titre}</div>
+      <div class="cd">✍️ ${c.auteur} · ${c.editeur||'—'} · ${c.cat||'—'}</div>
+      <div class="ci">ISBN : ${c.isbn||'—'}</div>
+    </div>`
+  ).join('');
+
+  zone.innerHTML = `
+    <div style="font-size:11px;color:#666;margin-bottom:6px">Éditions dans votre référentiel :</div>
+    <div class="choix-list">${candidatsHtml}</div>
+    <div id="jbnf${idx}" style="margin-top:8px"></div>
+    <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+      <button class="btn-grey" style="flex:1" onclick="chargerBNFJaune(${idx})">🔍 Autres éditions BNF</button>
+    </div>
+    ${scanISBNhtml(idx)}
+    <div id="jval${idx}" style="display:none;margin-top:8px">
+      <button class="btn-green" style="width:100%" onclick="validerChoix(${idx})">✅ Valider cette édition</button>
+    </div>`;
+  zone.style.display='block';
+  // Sync vue position
+  syncPos(idx);
+}
+
+function jNon(idx) {
+  const zone = document.getElementById(`js${idx}`);
+  const card = document.getElementById(`c${idx}`);
+  if (card) { const br=card.querySelector('.btn-row'); if(br) br.style.display='none'; }
+  zone.innerHTML = `<div style="font-size:12px;color:#555;margin-bottom:8px">Scanner le code-barres ou saisir l'ISBN :</div>
+    ${scanISBNhtml(idx)}`;
+  zone.style.display='block';
+  syncPos(idx);
+}
+
+function selJaune(idx, i, isbn, titre, auteur, editeur, cat) {
+  document.querySelectorAll(`[id^="jc${idx}_"]`).forEach(e=>e.classList.remove('sel'));
+  const el=document.getElementById(`jc${idx}_${i}`);
+  if(el) el.classList.add('sel');
+  const l=G.livres.find(x=>x._idx===idx);
+  if(l){l.isbn=isbn;l.titre_ref=titre;l.auteur_ref=auteur;l.editeur_ref=editeur;l.cat=cat;l._selIdx=i;}
+  showEl(`jval${idx}`);
+}
+
+async function chargerBNFJaune(idx) {
+  const l=G.livres.find(x=>x._idx===idx);
+  if(!l) return;
+  const zone=document.getElementById(`jbnf${idx}`);
+  zone.innerHTML=`<div class="bnf-load"><span class="spin"></span>Recherche BNF...</div>`;
+  const eds=await bnfSearch(l.titre_ref||l.titre||'',l.auteur_ref||l.auteur||'');
+  if(eds.length===0){zone.innerHTML='<div style="font-size:12px;color:#888">Aucun résultat BNF.</div>';return;}
+  const indicesVisuels=`Format: ${l.format||'?'} · Collection: ${l.collection||'?'} · Éditeur: ${l.editeur_reel||'?'}`;
+  zone.innerHTML=`
+    <div class="bnf-hint">📷 ${indicesVisuels}</div>
+    <div style="font-size:11px;color:#666;margin-bottom:6px">Éditions BNF :</div>
+    <div class="choix-list">${eds.map((ed,i)=>`
+      <div class="choix" id="jbc${idx}_${i}" onclick="selBNF(${idx},'${esc(ed.isbn)}','${esc(ed.titre)}','${esc(ed.editeur)}','${esc(ed.date)}','jbc${idx}_${i}')">
+        <div class="ct">${ed.titre}</div>
+        <div class="cd">🏢 ${ed.editeur||'—'} · 📅 ${ed.date||'—'}</div>
+        <div class="ci">ISBN : ${ed.isbn}</div>
+      </div>`).join('')}
+    </div>`;
+  syncPos(idx);
+}
+
+// ═══════════════════════════════════════════════════
+// LOGIQUE ROUGE
+// ═══════════════════════════════════════════════════
+function rOui(idx) {
+  const l=G.livres.find(x=>x._idx===idx);
+  if(!l) return;
+  const card=document.getElementById(`c${idx}`);
+  if(card){const br=card.querySelector('.btn-row');if(br) br.style.display='none';}
+  chargerBNFRouge(idx);
+}
+
+function rNon(idx) {
+  const l=G.livres.find(x=>x._idx===idx);
+  if(!l) return;
+  const card=document.getElementById(`c${idx}`);
+  if(card){const br=card.querySelector('.btn-row');if(br) br.style.display='none';}
+  const zone=document.getElementById(`js${idx}`);
+  zone.innerHTML=`
+    <div style="font-size:12px;color:#555;margin-bottom:8px">Corriger le titre/auteur :</div>
+    <div class="field" style="margin-bottom:6px"><input type="text" id="rTitre${idx}" placeholder="Titre" value="${esc(l.titre||'')}"></div>
+    <div class="field" style="margin-bottom:8px"><input type="text" id="rAuteur${idx}" placeholder="Auteur" value="${esc(l.auteur||'')}"></div>
+    <button class="btn-grey" style="width:100%;margin-bottom:8px" onclick="rCorrection(${idx})">🔍 Rechercher à la BNF</button>
+    ${scanISBNhtml(idx)}`;
+  zone.style.display='block';
+  syncPos(idx);
+}
+
+async function chargerBNFRouge(idx) {
+  const l=G.livres.find(x=>x._idx===idx);
+  if(!l) return;
+  const zone=document.getElementById(`js${idx}`);
+  zone.innerHTML=`<div class="bnf-load"><span class="spin"></span>Recherche BNF en cours...</div>`;
+  zone.style.display='block';
+  const indicesVisuels=`Format: ${l.format||'?'} · Collection: ${l.collection||'?'} · Éditeur: ${l.editeur_reel||'?'}`;
+  const eds=await bnfSearch(l.titre||'',l.auteur||'');
+  if(eds.length===0){
+    zone.innerHTML=`<div style="font-size:12px;color:#888;margin-bottom:8px">Aucun résultat BNF pour ce titre.</div>${scanISBNhtml(idx)}`;
+    syncPos(idx); return;
+  }
+  zone.innerHTML=`
+    <div class="bnf-hint">📷 ${indicesVisuels}</div>
+    <div style="font-size:11px;color:#666;margin-bottom:6px">Éditions trouvées à la BNF — sélectionnez la bonne :</div>
+    <div class="choix-list">${eds.map((ed,i)=>`
+      <div class="choix" id="rbc${idx}_${i}" onclick="selBNF(${idx},'${esc(ed.isbn)}','${esc(ed.titre)}','${esc(ed.editeur)}','${esc(ed.date)}','rbc${idx}_${i}')">
+        <div class="ct">${ed.titre}</div>
+        <div class="cd">🏢 ${ed.editeur||'—'} · 📅 ${ed.date||'—'}</div>
+        <div class="ci">ISBN : ${ed.isbn}</div>
+      </div>`).join('')}
+    </div>
+    <div class="sep">— ou —</div>
+    ${scanISBNhtml(idx)}
+    <div id="rval${idx}" style="display:none;margin-top:8px">
+      <button class="btn-green" style="width:100%" onclick="validerChoix(${idx})">✅ Valider cette édition</button>
+    </div>`;
+  syncPos(idx);
+}
+
+async function rCorrection(idx) {
+  const l=G.livres.find(x=>x._idx===idx);
+  if(!l) return;
+  const t=document.getElementById(`rTitre${idx}`)?.value||l.titre||'';
+  const a=document.getElementById(`rAuteur${idx}`)?.value||l.auteur||'';
+  l.titre=t; l.titre_ref=t; l.auteur=a; l.auteur_ref=a;
+  await chargerBNFRouge(idx);
+}
+
+// ═══════════════════════════════════════════════════
+// SÉLECTION BNF (commun jaune + rouge)
+// ═══════════════════════════════════════════════════
+function selBNF(idx, isbn, titre, editeur, date, elId) {
+  // Déselectionner tous les choix dans la zone
+  const zone=document.getElementById(`js${idx}`);
+  if(zone) zone.querySelectorAll('.choix').forEach(e=>e.classList.remove('sel'));
+  const el=document.getElementById(elId);
+  if(el) el.classList.add('sel');
+
+  const l=G.livres.find(x=>x._idx===idx);
+  if(l){l.isbn=isbn;l.titre_ref=titre||l.titre;l.editeur_ref=editeur;}
+
+  // Afficher bouton valider (jaune ou rouge)
+  const jval=document.getElementById(`jval${idx}`);
+  if(jval) jval.style.display='block';
+  const rval=document.getElementById(`rval${idx}`);
+  if(rval) rval.style.display='block';
+
+  syncPos(idx);
+}
+
+// ═══════════════════════════════════════════════════
+// VALIDATION D'UN CHOIX
+// ═══════════════════════════════════════════════════
+function validerChoix(idx) {
+  const l=G.livres.find(x=>x._idx===idx);
+  if(!l) return;
+  l._valide=true;
+  const resume=`<div class="val-box">
+    <div class="vt">✅ Édition validée</div>
+    <div style="font-weight:bold;font-size:13px">${l.titre_ref||l.titre}</div>
+    <div style="color:#888;font-size:12px">${l.editeur_ref||'—'}</div>
+    <div style="font-family:monospace;color:#C8A96E;font-weight:bold;margin-top:4px">ISBN : ${l.isbn||'—'}</div>
+  </div>`;
+  const card=document.getElementById(`c${idx}`);
+  if(card){card.className='lcard resolu';const vz=card.querySelector('.vzone');if(vz) vz.innerHTML=resume;}
+  syncPos(idx);
+}
+
+// ═══════════════════════════════════════════════════
+// SCAN CODE-BARRES
+// ═══════════════════════════════════════════════════
+function scannerCB(idx) {
+  const input=document.createElement('input');
+  input.type='file'; input.accept='image/*'; input.capture='environment';
+  input.onchange=async e=>{
+    const file=e.target.files[0]; if(!file) return;
+    const {b64}=await compresser(file,800,0.9);
+    try {
+      const res=await api([{role:'user',content:[
+        {type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}},
+        {type:'text',text:'Lis le code-barres ISBN sur cette image. Réponds UNIQUEMENT avec les 13 chiffres de l\'ISBN, rien d\'autre.'}
+      ]}],50);
+      const isbn=res.trim().replace(/[^0-9]/g,'');
+      if(isbn.length>=10) appliquerISBN(idx,isbn);
+      else { alert('Code-barres non lisible. Essayez la saisie manuelle.'); saisirISBN(idx); }
+    } catch(e){ saisirISBN(idx); }
+  };
+  input.click();
+}
+
+function saisirISBN(idx) {
+  const isbn=prompt('ISBN (13 chiffres) :');
+  if(isbn) appliquerISBN(idx, isbn.trim().replace(/[^0-9]/g,''));
+}
+
+async function appliquerISBN(idx, isbn) {
+  const l=G.livres.find(x=>x._idx===idx);
+  if(!l) return;
+  l.isbn=isbn;
+
+  // Chercher dans référentiel
+  const ref=G.ref.find(r=>r.isbn===isbn||r.isbn.replace(/-/g,'')===isbn);
+  if(ref){
+    l.titre_ref=ref.titre; l.auteur_ref=ref.auteur; l.cat=ref.cat; l.editeur_ref=ref.editeur; l._valide=true;
+    afficherISBNValide(idx,isbn,ref.titre,ref.editeur,true);
+    return;
+  }
+
+  // Chercher à la BNF
+  const zone=document.getElementById(`js${idx}`);
+  if(zone) zone.innerHTML+=`<div class="bnf-load" id="isbnLoad${idx}"><span class="spin"></span>Vérification BNF...</div>`;
+  const eds=await bnfByISBN(isbn);
+  const load=document.getElementById(`isbnLoad${idx}`);
+  if(load) load.remove();
+
+  if(eds.length>0){
+    l.titre_ref=eds[0].titre||l.titre; l.editeur_ref=eds[0].editeur;
+    // Afficher pour confirmation
+    const confirmHtml=`<div class="val-box">
+      <div class="vt">📖 Titre trouvé à la BNF</div>
+      <div style="font-weight:bold;font-size:13px">${eds[0].titre}</div>
+      <div style="color:#888;font-size:12px">🏢 ${eds[0].editeur||'—'} · 📅 ${eds[0].date||'—'}</div>
+      <div style="font-family:monospace;color:#C8A96E;font-weight:bold;margin:4px 0">ISBN : ${isbn}</div>
+      <div class="btn-row" style="margin-top:8px">
+        <button class="btn-green" onclick="confirmerISBN(${idx})">✅ Confirmer</button>
+        <button class="btn-grey" onclick="saisirISBN(${idx})">✏️ Corriger</button>
+      </div>
+    </div>`;
+    if(zone) zone.innerHTML+=confirmHtml;
+  } else {
+    l._valide=true;
+    afficherISBNValide(idx,isbn,l.titre||'Titre inconnu','',false);
+  }
+  syncPos(idx);
+}
+
+function confirmerISBN(idx) {
+  const l=G.livres.find(x=>x._idx===idx);
+  if(l){l._valide=true;}
+  afficherISBNValide(idx,l.isbn,l.titre_ref||l.titre,l.editeur_ref,true);
+}
+
+function afficherISBNValide(idx,isbn,titre,editeur,bnf) {
+  const l=G.livres.find(x=>x._idx===idx);
+  if(l){l._valide=true;l.isbn=isbn;l.titre_ref=titre;l.editeur_ref=editeur;}
+  const card=document.getElementById(`c${idx}`);
+  if(card){
+    card.className='lcard resolu';
+    const vz=card.querySelector('.vzone');
+    if(vz) vz.innerHTML=`<div class="val-box">
+      <div class="vt">✅ ISBN enregistré</div>
+      <div style="font-family:monospace;color:#C8A96E;font-weight:bold">ISBN : ${isbn}</div>
+      <div style="font-size:12px;color:#555;margin-top:2px">${titre||'—'}</div>
+      ${editeur?`<div style="font-size:11px;color:#888">🏢 ${editeur}</div>`:''}
+      ${!bnf?'<div style="font-size:10px;color:#aaa;margin-top:2px">Non trouvé dans la BNF</div>':''}
+    </div>`;
+  }
+  syncPos(idx);
+}
+
+// ═══════════════════════════════════════════════════
+// SYNC VUE POSITION
+// ═══════════════════════════════════════════════════
+function syncPos(idx) {
+  const l=G.livres.find(x=>x._idx===idx);
+  if(!l) return;
+  const posCard=document.getElementById(`cpv${idx}`);
+  if(posCard) posCard.innerHTML=zoneValidation(l);
+}
+
+// ═══════════════════════════════════════════════════
+// API BNF
+// ═══════════════════════════════════════════════════
+async function bnfSearch(titre, auteur) {
+  try {
+    const t=titre.split(' ').slice(0,4).join(' ');
+    const a=auteur.split(' ').slice(0,2).join(' ');
+    const q=encodeURIComponent(`(bib.title all "${t}") and (bib.author all "${a}")`);
+    const r=await fetch(`${BNF}&query=${q}`);
+    if(!r.ok) return [];
+    return parseBNF(await r.text());
+  } catch(e){ return []; }
+}
+
+async function bnfByISBN(isbn) {
+  try {
+    const q=encodeURIComponent(`bib.isbn adj "${isbn}"`);
+    const r=await fetch(`${BNF}&query=${q}`);
+    if(!r.ok) return [];
+    return parseBNF(await r.text());
+  } catch(e){ return []; }
+}
+
+function parseBNF(txt) {
+  const nb=parseInt(txt.match(/numberOfRecords>(\d+)</)?.[1]||'0');
+  if(nb===0) return [];
+  const records=txt.split('<srw:record>').slice(1);
+  const res=[];
+  records.forEach(rec=>{
+    const titre=rec.match(/<dc:title>(.*?)<\/dc:title>/)?.[1]||'';
+    const editeur=rec.match(/<dc:publisher>(.*?)<\/dc:publisher>/)?.[1]||'';
+    const date=rec.match(/<dc:date>(.*?)<\/dc:date>/)?.[1]||'';
+    const isbns=[...rec.matchAll(/<dc:identifier>[^<]*(97[89]\d{10})[^<]*<\/dc:identifier>/g)].map(m=>m[1]);
+    isbns.forEach(isbn=>res.push({titre,editeur,date,isbn}));
+  });
+  return res.filter((r,i,a)=>a.findIndex(x=>x.isbn===r.isbn)===i).slice(0,8);
+}
+
+// ═══════════════════════════════════════════════════
+// SESSION — AJOUT + NAVIGATION
+// ═══════════════════════════════════════════════════
+function ajouterEtagere() {
+  const ts=now();
+  G.livres.forEach(l=>{
+    if(l.confiance==='NOIR'&&!l.isbn) return;
+    G.inv.push({
+      isbn:l.isbn||'', titre:l.titre_ref||l.titre||'',
+      auteur:l.auteur_ref||l.auteur||'', editeur:l.editeur_ref||'',
+      cat:l.cat||'', format:l.format||'', collection:l.collection||'',
+      confiance:l.confiance, date:ts
+    });
+  });
+  sauver(); majInv();
+  hideEl('resultats'); hideEl('sessBox');
+  showEl('postBox');
+}
+
+function recommencer() { resetScan(); document.getElementById('fCam').click(); }
+function continuer() { resetScan(); }
+function cloturer() {
+  sauver(); resetScan(); showTab('invTab');
+  alert(`💾 Session sauvegardée — ${G.inv.length} livres dans l'inventaire.`);
+}
+
+function resetScan() {
+  G.livres=[]; G._p1=null; G.nbAttendu=null;
+  hideEl('resultats'); hideEl('countBox'); hideEl('postBox'); hideEl('sessBox');
+  hideEl('prevBox'); hideEl('scanErr');
+  document.getElementById('conseilsCard').style.display='block';
+  document.getElementById('secVert').style.display='none';
+  document.getElementById('secJaune').style.display='none';
+  document.getElementById('secRouge').style.display='none';
+  document.getElementById('secNoir').style.display='none';
+  document.getElementById('fCam').value='';
+  document.getElementById('fGal').value='';
+  document.getElementById('rescanForm').style.display='none';
+}
+
+// ═══════════════════════════════════════════════════
+// INVENTAIRE
+// ═══════════════════════════════════════════════════
+function majInv() {
+  const nb=G.inv.length;
+  document.getElementById('tabCount').textContent=nb;
+  document.getElementById('invNb').textContent=nb;
+  document.getElementById('invVide').style.display=nb===0?'block':'none';
+  document.getElementById('invContenu').style.display=nb>0?'block':'none';
+  if(nb>0){
+    document.getElementById('invBody').innerHTML=G.inv.map((l,i)=>`
+      <tr>
+        <td class="del-cell"><button class="btn-danger" onclick="suppLivre(${i})" style="font-size:16px;line-height:1">✕</button></td>
+        <td style="font-family:monospace;font-size:10px">${l.isbn||'—'}</td>
+        <td>${trunc(l.titre,28)}</td>
+        <td style="color:#666">${trunc(l.auteur,18)}</td>
+        <td style="color:#888">${trunc(l.editeur,14)}</td>
+        <td><span style="font-size:9px;background:#f0ece4;padding:2px 4px;border-radius:3px">${l.cat||'—'}</span></td>
+        <td>${{VERT:'🟢',JAUNE:'🟡',JAUNE_VALIDE:'🟡',BNF:'🔵',ROUGE:'🔴',SCAN:'🔵',NOIR:'⚫'}[l.confiance]||'—'}</td>
+      </tr>`).join('');
+  }
+}
+
+function suppLivre(i) {
+  if(!confirm('Supprimer ce livre ?')) return;
+  G.inv.splice(i,1); sauver(); majInv();
+}
+
+function viderInv() {
+  if(!confirm('Vider tout l\'inventaire ?')) return;
+  G.inv=[]; sauver(); majInv();
+}
+
+function exportCSV() {
+  const h='ISBN,Titre,Auteur,Éditeur,Catégorie,Format,Collection,Confiance,Date\n';
+  const rows=G.inv.map(l=>[l.isbn,l.titre,l.auteur,l.editeur,l.cat,l.format,l.collection,l.confiance,l.date]
+    .map(v=>`"${(v||'').replace(/"/g,'""')}"`)
+    .join(',')).join('\n');
+  dl('\uFEFF'+h+rows,`inventaire_${today()}.csv`,'text/csv;charset=utf-8;');
+}
+
+function exportXLSX() {
+  const ws=XLSX.utils.json_to_sheet(G.inv.map(l=>({
+    'ISBN':l.isbn||'','Titre':l.titre||'','Auteur':l.auteur||'','Éditeur':l.editeur||'',
+    'Catégorie':l.cat||'','Format':l.format||'','Collection':l.collection||'',
+    'Confiance':l.confiance||'','Date':l.date||''
+  })));
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Inventaire');
+  XLSX.writeFile(wb,`inventaire_${today()}.xlsx`);
+}
+
+function dl(content, name, type) {
+  const blob=new Blob([content],{type});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=name; a.click();
+  URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>
