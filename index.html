@@ -877,7 +877,8 @@ function cardPosition(r) {
 }
 
 function cardJaune(r) {
-  return `<div class="livre-card jaune" id="card-${r.position}-${r.etagere||1}">
+  const idx = r._idx;
+  return `<div class="livre-card jaune" id="card-${idx}">
     <div style="font-size:11px;color:#888;margin-bottom:4px">L'IA a identifié :</div>
     <div class="livre-titre">${r.titre_ref||r.titre||'?'}</div>
     <div class="livre-auteur">✍️ ${r.auteur_ref||r.auteur||'—'}</div>
@@ -889,17 +890,18 @@ function cardJaune(r) {
     <div class="validation-zone">
       <p>Ce livre est-il bien identifié ?</p>
       <div class="btn-row">
-        <button class="btn-green" onclick="jaune_oui(${r.position},${r.etagere||1})">✅ C'est juste</button>
-        <button class="btn-red" onclick="jaune_non(${r.position},${r.etagere||1})">❌ Ce n'est pas ça</button>
+        <button class="btn-green" onclick="jaune_oui(${idx})">✅ C'est juste</button>
+        <button class="btn-red" onclick="jaune_non(${idx})">❌ Ce n'est pas ça</button>
       </div>
-      <div id="jaune-suite-${r.position}-${r.etagere||1}" style="display:none"></div>
+      <div id="jaune-suite-${idx}" style="display:none"></div>
     </div>
   </div>`;
 }
 
 function cardRouge(r) {
+  const ridx = r._idx;
   const titreConnu = r.titre && r.titre.length > 2;
-  return `<div class="livre-card rouge" id="card-${r.position}-${r.etagere||1}">
+  return `<div class="livre-card rouge" id="card-${ridx}">
     ${titreConnu ? `
       <div style="font-size:11px;color:#888;margin-bottom:4px">L'IA a identifié :</div>
       <div class="livre-titre">${r.titre}</div>
@@ -912,30 +914,31 @@ function cardRouge(r) {
       <div class="validation-zone">
         <p>Ce livre est-il bien identifié ?</p>
         <div class="btn-row">
-          <button class="btn-green" onclick="rouge_oui(${r.position},${r.etagere||1})">✅ C'est juste</button>
-          <button class="btn-red" onclick="rouge_non(${r.position},${r.etagere||1})">❌ Ce n'est pas ça</button>
+          <button class="btn-green" onclick="rouge_oui(${ridx})">✅ C'est juste</button>
+          <button class="btn-red" onclick="rouge_non(${ridx})">❌ Ce n'est pas ça</button>
         </div>
-        <div id="rouge-suite-${r.position}-${r.etagere||1}" style="display:none"></div>
+        <div id="rouge-suite-${ridx}" style="display:none"></div>
       </div>` : `
       <div class="livre-titre" style="color:#aaa;font-style:italic">Titre non identifié</div>
       <div class="livre-meta"><span class="badge badge-rouge">🔴 Illisible</span></div>
       <div class="validation-zone">
         <p>Corriger ou scanner le code-barres</p>
-        <button class="btn-grey" style="width:100%;margin-bottom:8px" onclick="corrigerTitre(${r.position},${r.etagere||1})">✏️ Saisir le titre</button>
-        <div class="scan-btn" onclick="lancerScan(${r.position},${r.etagere||1})">📷 Scanner le code-barres ISBN</div>
+        <button class="btn-grey" style="width:100%;margin-bottom:8px" onclick="corrigerTitre(${ridx})">✏️ Saisir le titre</button>
+        <div class="scan-btn" onclick="lancerScan(${ridx})">📷 Scanner le code-barres ISBN</div>
       </div>`}
   </div>`;
 }
 
 function cardNoir(r) {
-  return `<div class="livre-card noir" id="card-${r.position}-${r.etagere||1}">
+  const nidx = r._idx;
+  return `<div class="livre-card noir" id="card-${nidx}">
     <div class="livre-titre" style="color:#aaa;font-style:italic">Livre non identifiable</div>
     <div class="livre-meta"><span class="badge badge-noir">⚫ Tranche illisible</span></div>
     <div class="validation-zone">
       <p>Scanner le code-barres ou saisir l'ISBN</p>
-      <div class="scan-btn" onclick="lancerScan(${r.position},${r.etagere||1})">📷 Scanner le code-barres ISBN</div>
+      <div class="scan-btn" onclick="lancerScan(${nidx})">📷 Scanner le code-barres ISBN</div>
       <div class="separateur">ou</div>
-      <span onclick="saisirISBN(${r.position},${r.etagere||1})" style="font-size:12px;color:#C8A96E;cursor:pointer;text-decoration:underline;display:block;text-align:center">Saisir l'ISBN manuellement</span>
+      <span onclick="saisirISBN(${nidx})" style="font-size:12px;color:#C8A96E;cursor:pointer;text-decoration:underline;display:block;text-align:center">Saisir l'ISBN manuellement</span>
     </div>
   </div>`;
 }
@@ -943,10 +946,10 @@ function cardNoir(r) {
 // ═══════════════════════════════════════════════════════
 // LOGIQUE JAUNE
 // ═══════════════════════════════════════════════════════
-function jaune_oui(position, etagere) {
-  const r = STATE.analyseEnCours.find(x => x.position===position && (x.etagere||1)===etagere);
+function jaune_oui(idx) {
+  const r = STATE.analyseEnCours.find(x => x._idx===idx);
   if (!r) return;
-  const suite = document.getElementById(`jaune-suite-${position}-${etagere}`);
+  const suite = document.getElementById(`jaune-suite-${idx}`);
 
   // Candidats du référentiel (titre proche + même auteur)
   const candidats = r._candidats || [];
@@ -956,16 +959,16 @@ function jaune_oui(position, etagere) {
     html += `<div style="font-size:12px;color:#666;margin-bottom:8px">Éditions dans votre référentiel :</div>
     <div class="choix-list">
       ${candidats.map((c,i) => `
-        <div class="choix-item" id="jchoix-${position}-${etagere}-${i}" onclick="jaune_selRef(${position},${etagere},${i},'${esc(c.isbn)}','${esc(c.titre)}','${esc(c.auteur)}','${esc(c.editeur||'')}','${esc(c.categorie)}')">
+        <div class="choix-item" id="jchoix-${idx}-${i}" onclick="jaune_selRef(${idx},${i},'${esc(c.isbn)}','${esc(c.titre)}','${esc(c.auteur)}','${esc(c.editeur||'')}','${esc(c.categorie)}')">
           <div class="choix-titre">${c.titre}</div>
           <div class="choix-detail">✍️ ${c.auteur} · ${c.editeur||''} · ${c.categorie}</div>
           <div class="choix-isbn">ISBN : ${c.isbn}</div>
         </div>`).join('')}
-      <div class="choix-item" onclick="jaune_pasDansRef(${position},${etagere})" style="color:#e57373;text-align:center;font-weight:bold">
+      <div class="choix-item" onclick="jaune_pasDansRef(${idx})" style="color:#e57373;text-align:center;font-weight:bold">
         Pas de correspondance dans le référentiel →
       </div>
     </div>
-    <div id="jaune-bnf-${position}-${etagere}" style="display:none;margin-top:10px"></div>`;
+    <div id="jaune-bnf-${idx}" style="display:none;margin-top:10px"></div>`;
   } else {
     // Pas de candidats → directement protocole rouge
     html += `<div style="color:#e57373;font-size:13px;margin-bottom:8px">Aucune correspondance titre+auteur trouvée dans le référentiel.</div>`;
@@ -976,79 +979,77 @@ function jaune_oui(position, etagere) {
   suite.style.display = 'block';
 }
 
-function jaune_non(position, etagere) {
-  const r = STATE.analyseEnCours.find(x => x.position===position && (x.etagere||1)===etagere);
+function jaune_non(idx) {
+  const r = STATE.analyseEnCours.find(x => x._idx===idx);
   if (!r) return;
-  const suite = document.getElementById(`jaune-suite-${position}-${etagere}`);
+  const suite = document.getElementById(`jaune-suite-${idx}`);
   suite.innerHTML = `
     <div style="font-size:13px;color:#555;margin-bottom:10px">Scanner le code-barres ou saisir l'ISBN :</div>
-    <div class="scan-btn" onclick="lancerScan(${position},${etagere})">📷 Scanner le code-barres ISBN</div>
+    <div class="scan-btn" onclick="lancerScan(${idx})">📷 Scanner le code-barres ISBN</div>
     <div class="separateur">ou</div>
-    <span onclick="saisirISBN(${position},${etagere})" style="font-size:12px;color:#C8A96E;cursor:pointer;text-decoration:underline;display:block;text-align:center">Saisir l'ISBN manuellement</span>`;
+    <span onclick="saisirISBN(${idx})" style="font-size:12px;color:#C8A96E;cursor:pointer;text-decoration:underline;display:block;text-align:center">Saisir l'ISBN manuellement</span>`;
   suite.style.display = 'block';
 }
 
-function jaune_selRef(position, etagere, idx, isbn, titre, auteur, editeur, categorie) {
+function jaune_selRef(cidx, selIdx, isbn, titre, auteur, editeur, categorie) {
   // Marquer sélection
-  document.querySelectorAll(`[id^="jchoix-${position}-${etagere}-"]`).forEach(el => el.classList.remove('selected'));
-  const el = document.getElementById(`jchoix-${position}-${etagere}-${idx}`);
+  document.querySelectorAll(`[id^="jchoix-${cidx}-"]`).forEach(el => el.classList.remove('selected'));
+  const el = document.getElementById(`jchoix-${cidx}-${selIdx}`);
   if (el) el.classList.add('selected');
 
-  const r = STATE.analyseEnCours.find(x => x.position===position && (x.etagere||1)===etagere);
+  const r = STATE.analyseEnCours.find(x => x._idx===cidx);
   if (r) { r.isbn_trouve = isbn; r.titre_ref = titre; r.auteur_ref = auteur; r.editeur = editeur; r.categorie = categorie; r.confiance = 'JAUNE_VALIDE'; r._valide = true; }
 
   // Afficher bouton valider + option autres éditions BNF
-  const bnfZone = document.getElementById(`jaune-bnf-${position}-${etagere}`);
+  const bnfZone = document.getElementById(`jaune-bnf-${idx}`);
   if (bnfZone) {
     bnfZone.innerHTML = `
-      <button class="btn-green" style="width:100%;margin-bottom:8px" onclick="validerChoix(${position},${etagere})">✅ Valider cette édition</button>
-      <button class="btn-grey" style="width:100%" onclick="autresEditionsBNF(${position},${etagere})">🔍 Autres éditions hors stock (BNF)</button>`;
+      <button class="btn-green" style="width:100%;margin-bottom:8px" onclick="validerChoix(${cidx})">✅ Valider cette édition</button>
+      <button class="btn-grey" style="width:100%" onclick="autresEditionsBNF(${cidx})">🔍 Autres éditions hors stock (BNF)</button>`;
     bnfZone.style.display = 'block';
   }
 }
 
-function jaune_pasDansRef(position, etagere) {
-  appliquerProtocoleRouge(position, etagere);
+function jaune_pasDansRef(idx) {
+  appliquerProtocoleRouge(idx);
 }
 
-async function autresEditionsBNF(position, etagere) {
-  const r = STATE.analyseEnCours.find(x => x.position===position && (x.etagere||1)===etagere);
+async function autresEditionsBNF(idx) {
+  const r = STATE.analyseEnCours.find(x => x._idx===idx);
   if (!r) return;
-  const bnfZone = document.getElementById(`jaune-bnf-${position}-${etagere}`);
+  const bnfZone = document.getElementById(`jaune-bnf-${idx}`);
   bnfZone.innerHTML = `<div class="bnf-loading"><span class="spinner"></span>Recherche BNF...</div>`;
   const editions = await rechercherBNF(r.titre_ref||r.titre||'', r.auteur_ref||r.auteur||'');
-  afficherEditionsBNF(bnfZone, editions, position, etagere);
+  afficherEditionsBNF(bnfZone, editions, idx);
 }
 
 // ═══════════════════════════════════════════════════════
 // LOGIQUE ROUGE
 // ═══════════════════════════════════════════════════════
-function rouge_oui(position, etagere) {
-  const r = STATE.analyseEnCours.find(x => x.position===position && (x.etagere||1)===etagere);
+function rouge_oui(idx) {
+  const r = STATE.analyseEnCours.find(x => x._idx===idx);
   if (!r) return;
-  // Masquer les boutons de confirmation
-  const card = document.getElementById(`card-${position}-${etagere}`);
+  const card = document.getElementById(`card-${idx}`);
   if (card) {
     const btnRow = card.querySelector('.btn-row');
     if (btnRow) btnRow.style.display = 'none';
   }
-  appliquerProtocoleRouge(position, etagere);
+  appliquerProtocoleRouge(idx);
 }
 
-function rouge_non(position, etagere) {
-  corrigerTitre(position, etagere);
+function rouge_non(idx) {
+  corrigerTitre(idx);
 }
 
-async function appliquerProtocoleRouge(position, etagere) {
-  const r = STATE.analyseEnCours.find(x => x.position===position && (x.etagere||1)===etagere);
+async function appliquerProtocoleRouge(idx) {
+  const r = STATE.analyseEnCours.find(x => x._idx===idx);
   if (!r) return;
 
-  let suiteId = `rouge-suite-${position}-${etagere}`;
+  let suiteId = `rouge-suite-${idx}`;
   let suite = document.getElementById(suiteId);
 
-  // Si vient d'un jaune, reconstruire la carte
   if (!suite) {
-    const card = document.getElementById(`card-${position}-${etagere}`);
+    const card = document.getElementById(`card-${idx}`);
     if (card) {
       card.className = 'livre-card rouge';
       card.innerHTML = `
@@ -1068,11 +1069,11 @@ async function appliquerProtocoleRouge(position, etagere) {
   suite.style.display = 'block';
 
   const editions = await rechercherBNF(r.titre||r.titre_ref||'', r.auteur||r.auteur_ref||'');
-  afficherEditionsBNF(suite, editions, position, etagere);
+  afficherEditionsBNF(suite, editions, idx);
 }
 
-function afficherEditionsBNF(container, editions, position, etagere) {
-  const r = STATE.analyseEnCours.find(x => x.position===position && (x.etagere||1)===etagere);
+function afficherEditionsBNF(container, editions, idx) {
+  const r = STATE.analyseEnCours.find(x => x._idx===idx);
   const indices = r ? `Format détecté : ${r.format||'?'} · Collection : ${r.collection||'?'} · Éditeur : ${r.editeur_reel||'?'}` : '';
 
   if (editions.length > 0) {
@@ -1082,8 +1083,8 @@ function afficherEditionsBNF(container, editions, position, etagere) {
       <div style="font-size:11px;color:#888;margin-bottom:8px">Sélectionnez l'édition compatible avec le livre en main :</div>
       <div class="choix-list">
         ${editions.map((ed,i) => `
-          <div class="choix-item" id="bnfchoix-${position}-${etagere}-${i}"
-            onclick="selBNF(${position},${etagere},${i},'${esc(ed.isbn)}','${esc(ed.titre)}','${esc(ed.editeur)}','${esc(ed.date)}')">
+          <div class="choix-item" id="bnfchoix-${idx}-${i}"
+            onclick="selBNF(${idx},${i},'${esc(ed.isbn)}','${esc(ed.titre)}','${esc(ed.editeur)}','${esc(ed.date)}')">
             <div class="choix-titre">${ed.titre}</div>
             <div class="choix-detail">🏢 ${ed.editeur||'—'}${ed.date ? ' · 📅 ' + ed.date : ''}</div>
             <div class="choix-isbn">📖 ISBN : <strong>${ed.isbn}</strong></div>
@@ -1096,8 +1097,8 @@ function afficherEditionsBNF(container, editions, position, etagere) {
         style="font-size:12px;color:#C8A96E;cursor:pointer;text-decoration:underline;display:block;text-align:center">
         Saisir l'ISBN manuellement
       </span>
-      <div id="bnf-valider-${position}-${etagere}" style="display:none;margin-top:10px">
-        <button class="btn-green" style="width:100%" onclick="validerChoix(${position},${etagere})">✅ Valider cette édition</button>
+      <div id="bnf-valider-${idx}" style="display:none;margin-top:10px">
+        <button class="btn-green" style="width:100%" onclick="validerChoix(${idx})">✅ Valider cette édition</button>
       </div>`;
   } else {
     container.innerHTML = `
@@ -1112,23 +1113,23 @@ function afficherEditionsBNF(container, editions, position, etagere) {
   }
 }
 
-function selBNF(position, etagere, idx, isbn, titre, editeur, date) {
-  document.querySelectorAll(`[id^="bnfchoix-${position}-${etagere}-"]`).forEach(el => el.classList.remove('selected'));
-  const el = document.getElementById(`bnfchoix-${position}-${etagere}-${idx}`);
+function selBNF(cidx, selIdx, isbn, titre, editeur, date) {
+  document.querySelectorAll(`[id^="bnfchoix-${cidx}-"]`).forEach(el => el.classList.remove('selected'));
+  const el = document.getElementById(`bnfchoix-${cidx}-${selIdx}`);
   if (el) el.classList.add('selected');
 
-  const r = STATE.analyseEnCours.find(x => x.position===position && (x.etagere||1)===etagere);
+  const r = STATE.analyseEnCours.find(x => x._idx===cidx);
   if (r) { r.isbn_trouve = isbn; r.titre_ref = titre||r.titre; r.editeur = editeur; r._valide = true; r.confiance = 'BNF'; }
 
-  const valBtn = document.getElementById(`bnf-valider-${position}-${etagere}`);
+  const valBtn = document.getElementById(`bnf-valider-${cidx}`);
   if (valBtn) valBtn.style.display = 'block';
 }
 
-function validerChoix(position, etagere) {
-  const r = STATE.analyseEnCours.find(x => x.position===position && (x.etagere||1)===etagere);
+function validerChoix(idx) {
+  const r = STATE.analyseEnCours.find(x => x._idx===idx);
   if (!r) return;
   r._valide = true;
-  const card = document.getElementById(`card-${position}-${etagere}`);
+  const card = document.getElementById(`card-${idx}`);
   if (card) {
     card.className = 'livre-card resolu';
     const vz = card.querySelector('.validation-zone');
@@ -1142,25 +1143,25 @@ function validerChoix(position, etagere) {
 // ═══════════════════════════════════════════════════════
 // CORRECTIONS ET SCAN ISBN
 // ═══════════════════════════════════════════════════════
-function corrigerTitre(position, etagere) {
-  const r = STATE.analyseEnCours.find(x => x.position===position && (x.etagere||1)===etagere);
+function corrigerTitre(idx) {
+  const r = STATE.analyseEnCours.find(x => x._idx===idx);
   if (!r) return;
   const titre = prompt('Titre correct :', r.titre||'');
   if (!titre) return;
   const auteur = prompt('Auteur :', r.auteur||'');
   r.titre = titre; r.titre_ref = titre;
   if (auteur) { r.auteur = auteur; r.auteur_ref = auteur; }
-  const card = document.getElementById(`card-${position}-${etagere}`);
+  const card = document.getElementById(`card-${idx}`);
   if (card) {
     const t = card.querySelector('.livre-titre');
     const a = card.querySelector('.livre-auteur');
     if (t) t.textContent = titre;
     if (a && auteur) a.textContent = '✍️ ' + auteur;
   }
-  appliquerProtocoleRouge(position, etagere);
+  appliquerProtocoleRouge(idx);
 }
 
-function lancerScan(position, etagere) {
+function lancerScan(idx) {
   const input = document.createElement('input');
   input.type = 'file'; input.accept = 'image/*'; input.capture = 'environment';
   input.onchange = async e => {
@@ -1177,23 +1178,23 @@ function lancerScan(position, etagere) {
       }], 50);
       const isbn = res.trim().replace(/[^0-9]/g,'');
       if (isbn.length >= 10) {
-        appliquerISBN(position, etagere, isbn);
+        appliquerISBN(idx, isbn);
       } else {
         alert('Code-barres non lisible. Essayez la saisie manuelle.');
-        saisirISBN(position, etagere);
+        saisirISBN(idx);
       }
     } catch(e) { saisirISBN(position, etagere); }
   };
   input.click();
 }
 
-function saisirISBN(position, etagere) {
+function saisirISBN(idx) {
   const isbn = prompt('ISBN (13 chiffres) :');
-  if (isbn) appliquerISBN(position, etagere, isbn.trim().replace(/[^0-9]/g,''));
+  if (isbn) appliquerISBN(idx, isbn.trim().replace(/[^0-9]/g,''));
 }
 
-async function appliquerISBN(position, etagere, isbn) {
-  const r = STATE.analyseEnCours.find(x => x.position===position && (x.etagere||1)===etagere);
+async function appliquerISBN(idx, isbn) {
+  const r = STATE.analyseEnCours.find(x => x._idx===idx);
   if (!r) return;
   r.isbn_trouve = isbn; r.confiance = 'SCAN';
 
@@ -1202,10 +1203,10 @@ async function appliquerISBN(position, etagere, isbn) {
   if (ref) {
     r.titre_ref = ref.titre; r.auteur_ref = ref.auteur; r.categorie = ref.categorie; r.editeur = ref.editeur;
     r._valide = true;
-    afficherISBNValide(position, etagere, isbn, ref.titre, ref.editeur, true);
+    afficherISBNValide(idx, isbn, ref.titre, ref.editeur, true);
   } else {
     // Chercher dans BNF par ISBN — afficher résultat pour confirmation
-    const card = document.getElementById(`card-${position}-${etagere}`);
+    const card = document.getElementById(`card-${idx}`);
     const vz = card ? card.querySelector('.validation-zone') : null;
     if (vz) vz.innerHTML += `<div class="bnf-loading" style="margin-top:8px"><span class="spinner"></span>Vérification BNF...</div>`;
 
@@ -1224,26 +1225,26 @@ async function appliquerISBN(position, etagere, isbn) {
           <div style="color:#888;font-size:12px">🏢 ${eds[0].editeur||'—'} · 📅 ${eds[0].date||'—'}</div>
           <div style="font-family:monospace;color:#C8A96E;font-size:12px;font-weight:bold;margin:4px 0">ISBN : ${isbn}</div>
           <div class="btn-row" style="margin-top:10px">
-            <button class="btn-green" onclick="confirmerISBN(${position},${etagere})">✅ Confirmer</button>
-            <button class="btn-grey" onclick="saisirISBN(${position},${etagere})">✏️ Corriger</button>
+            <button class="btn-green" onclick="confirmerISBN(${idx})">✅ Confirmer</button>
+            <button class="btn-grey" onclick="saisirISBN(${idx})">✏️ Corriger</button>
           </div>`;
         vz.appendChild(confirmDiv);
       }
     } else {
       r._valide = true;
-      afficherISBNValide(position, etagere, isbn, r.titre||'Titre inconnu', '', false);
+      afficherISBNValide(idx, isbn, r.titre||'Titre inconnu', '', false);
     }
   }
 }
 
-function confirmerISBN(position, etagere) {
-  const r = STATE.analyseEnCours.find(x => x.position===position && (x.etagere||1)===etagere);
+function confirmerISBN(idx) {
+  const r = STATE.analyseEnCours.find(x => x._idx===idx);
   if (r) r._valide = true;
-  afficherISBNValide(position, etagere, r.isbn_trouve, r.titre_ref||r.titre, r.editeur, true);
+  afficherISBNValide(idx, r.isbn_trouve, r.titre_ref||r.titre, r.editeur, true);
 }
 
-function afficherISBNValide(position, etagere, isbn, titre, editeur, trouveBNF) {
-  const card = document.getElementById(`card-${position}-${etagere}`);
+function afficherISBNValide(idx, isbn, titre, editeur, trouveBNF) {
+  const card = document.getElementById(`card-${idx}`);
   if (card) {
     card.className = 'livre-card resolu';
     const vz = card.querySelector('.validation-zone');
