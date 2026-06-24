@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>LibraScan — Fusion d'inventaires</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #F7F4EF; color: #1a1a1a; min-height: 100vh; }
+    header { background: #1C1C1E; padding: 14px 20px; display: flex; align-items: center; gap: 14px; }
+    header a { color: #C8A96E; font-size: 13px; text-decoration: none; }
+    header h1 { color: #fff; font-size: 18px; flex: 1; }
+    .container { padding: 20px; max-width: 680px; margin: 0 auto; }
+    .card { background: #fff; border-radius: 14px; padding: 18px; border: 1px solid #E0D8CC; margin-bottom: 14px; }
+    .btn { display: block; width: 100%; border: none; border-radius: 10px; padding: 13px; font-size: 14px; font-weight: bold; cursor: pointer; text-align: center; margin-bottom: 8px; }
+    .btn-gold { background: #C8A96E; color: #1C1C1E; }
+    .btn-dark { background: #1C1C1E; color: #C8A96E; }
+    .btn-outline { background: #fff; color: #1C1C1E; border: 2px solid #C8A96E; }
+    .btn-sm { display: inline-block; background: #C8A96E; color: #1C1C1E; border: none; border-radius: 7px; padding: 8px 16px; font-size: 13px; font-weight: bold; cursor: pointer; }
+    .drop { border: 2px dashed #C8A96E; border-radius: 14px; padding: 26px 20px; text-align: center; cursor: pointer; background: #fff; margin-bottom: 14px; }
+    .drop .ico { font-size: 40px; margin-bottom: 8px; }
+    .sec-title { font-size: 11px; color: #888; letter-spacing: 2px; text-transform: uppercase; margin: 14px 0 8px; }
+    .fichier-item { background: #F7F4EF; border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
+    .fichier-info { font-size: 13px; }
+    .fichier-name { font-weight: bold; }
+    .fichier-nb { color: #888; font-size: 12px; margin-top: 2px; }
+    .btn-del { background: none; border: none; color: #ddd; font-size: 18px; cursor: pointer; }
+    .btn-del:hover { color: #F44336; }
+    .stat-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 14px; }
+    .stat-box { background: #F7F4EF; border-radius: 10px; padding: 12px; text-align: center; }
+    .stat-box .n { font-size: 22px; font-weight: bold; color: #C8A96E; }
+    .stat-box .l { font-size: 11px; color: #888; margin-top: 2px; }
+    .doublon-item { background: #FFF3E0; border: 1px solid #FFB74D; border-radius: 8px; padding: 10px 12px; margin-bottom: 6px; font-size: 12px; }
+    .doublon-item .dt { font-weight: bold; margin-bottom: 2px; }
+    .doublon-item .dd { color: #888; font-size: 11px; }
+    .inv-wrap { overflow-x: auto; background: #fff; border-radius: 12px; border: 1px solid #E0D8CC; margin-bottom: 14px; }
+    .inv-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    .inv-table th { background: #F7F4EF; padding: 7px 9px; text-align: left; color: #888; font-size: 10px; text-transform: uppercase; border-bottom: 1px solid #E0D8CC; white-space: nowrap; }
+    .inv-table td { padding: 7px 9px; border-bottom: 1px solid #f0ece4; vertical-align: top; }
+    .inv-table tr:last-child td { border-bottom: none; }
+    .badge { border-radius: 4px; padding: 2px 6px; font-size: 10px; font-weight: bold; }
+    .b-warn { background: #FFF3E0; color: #E65100; }
+    input[type="file"] { display: none; }
+    .alert-ok { background: #E8F5E9; border: 1px solid #A5D6A7; color: #1B5E20; border-radius: 10px; padding: 11px 14px; font-size: 13px; margin-bottom: 12px; display: none; }
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="index.html">← Retour</a>
+  <h1>🔀 Fusion d'inventaires</h1>
+</header>
+
+<div class="container">
+
+  <!-- CHARGEMENT FICHIERS -->
+  <div class="card">
+    <h2 style="font-size:16px;margin-bottom:6px">Charger les fichiers à fusionner</h2>
+    <p style="font-size:12px;color:#666;margin-bottom:14px">Ajoutez autant de fichiers CSV ou Excel que vous souhaitez. Ils seront fusionnés en un seul inventaire.</p>
+
+    <div class="drop" onclick="document.getElementById('filesFusion').click()">
+      <div class="ico">📂</div>
+      <div style="font-weight:bold;font-size:15px;margin-bottom:6px">Ajouter des fichiers</div>
+      <p style="color:#666;font-size:12px">CSV ou Excel (.xlsx) exportés depuis LibraScan</p>
+      <div style="margin-top:12px"><span class="btn-sm">Choisir des fichiers</span></div>
+    </div>
+    <input type="file" id="filesFusion" accept=".xlsx,.xls,.csv" multiple>
+  </div>
+
+  <!-- LISTE DES FICHIERS CHARGÉS -->
+  <div id="zoneFichiers" style="display:none">
+    <div class="sec-title">Fichiers chargés</div>
+    <div id="listeFichiers"></div>
+    <button class="btn btn-gold" onclick="fusionner()" style="margin-top:8px">🔀 Fusionner</button>
+  </div>
+
+  <!-- RÉSULTATS FUSION -->
+  <div id="zoneFusion" style="display:none">
+
+    <div class="alert-ok" id="fusionOk"></div>
+
+    <div class="stat-grid">
+      <div class="stat-box"><div class="n" id="fTotal">0</div><div class="l">Total livres</div></div>
+      <div class="stat-box"><div class="n" id="fDoublons">0</div><div class="l">Doublons ISBN</div></div>
+      <div class="stat-box"><div class="n" id="fUniques">0</div><div class="l">Références uniques</div></div>
+    </div>
+
+    <!-- Doublons -->
+    <div id="zoneDoublons" style="display:none">
+      <div class="sec-title">⚠️ Doublons détectés (même ISBN)</div>
+      <p style="font-size:12px;color:#666;margin-bottom:10px">Ces livres apparaissent dans plusieurs sessions. Une seule occurrence est conservée dans la fusion.</p>
+      <div id="listeDoublons"></div>
+    </div>
+
+    <!-- Aperçu -->
+    <div class="sec-title">Aperçu de l'inventaire fusionné</div>
+    <div class="inv-wrap">
+      <table class="inv-table">
+        <thead>
+          <tr><th>ISBN</th><th>Titre</th><th>Auteur</th><th>Éditeur</th><th>Cat.</th><th>Source</th></tr>
+        </thead>
+        <tbody id="fusionBody"></tbody>
+      </table>
+    </div>
+
+    <button class="btn btn-dark" onclick="exportFusionXLSX()" style="margin-bottom:8px">↓ Exporter Excel (.xlsx)</button>
+    <button class="btn btn-outline" onclick="exportFusionCSV()">↓ Exporter CSV</button>
+  </div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// ÉTAT
+// ═══════════════════════════════════════════════════
+const fichiers = []; // { nom, lignes[] }
+let fusionné = [];
+
+// ═══════════════════════════════════════════════════
+// CHARGEMENT FICHIERS
+// ═══════════════════════════════════════════════════
+document.getElementById('filesFusion').addEventListener('change', e => {
+  const files = Array.from(e.target.files);
+  files.forEach(f => chargerFichier(f));
+  e.target.value = '';
+});
+
+function chargerFichier(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      let rows = [];
+      if (ext === 'csv') {
+        rows = e.target.result.split('\n')
+          .map(l => l.split(',').map(c => c.replace(/^"|"$/g, '').trim()));
+      } else {
+        const wb = XLSX.read(e.target.result, { type: 'array' });
+        rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '' });
+      }
+      if (rows.length < 2) { alert(`Le fichier "${file.name}" semble vide.`); return; }
+
+      // Normaliser les colonnes
+      const headers = rows[0].map(h => String(h).toLowerCase().trim());
+      const iISBN = headers.findIndex(h => h === 'isbn');
+      const iTitre = headers.findIndex(h => ['titre','title'].includes(h));
+      const iAuteur = headers.findIndex(h => ['auteur','author'].includes(h));
+      const iEdit = headers.findIndex(h => ['éditeur','editeur','publisher'].includes(h));
+      const iCat = headers.findIndex(h => ['catégorie','categorie','cat.','cat'].includes(h));
+      const iConf = headers.findIndex(h => ['confiance','conf.'].includes(h));
+      const iDate = headers.findIndex(h => h === 'date');
+
+      const lignes = [];
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || row.every(c => !c)) continue;
+        lignes.push({
+          isbn: iISBN !== -1 ? String(row[iISBN] || '').trim() : '',
+          titre: iTitre !== -1 ? String(row[iTitre] || '').trim() : '',
+          auteur: iAuteur !== -1 ? String(row[iAuteur] || '').trim() : '',
+          editeur: iEdit !== -1 ? String(row[iEdit] || '').trim() : '',
+          cat: iCat !== -1 ? String(row[iCat] || '').trim() : '',
+          confiance: iConf !== -1 ? String(row[iConf] || '').trim() : '',
+          date: iDate !== -1 ? String(row[iDate] || '').trim() : '',
+          source: file.name,
+        });
+      }
+
+      fichiers.push({ nom: file.name, lignes });
+      afficherFichiers();
+    } catch(err) {
+      alert(`Erreur lecture "${file.name}" : ${err.message}`);
+    }
+  };
+  ext === 'csv' ? reader.readAsText(file, 'UTF-8') : reader.readAsArrayBuffer(file);
+}
+
+function afficherFichiers() {
+  document.getElementById('zoneFichiers').style.display = 'block';
+  document.getElementById('listeFichiers').innerHTML = fichiers.map((f, i) => `
+    <div class="fichier-item">
+      <div class="fichier-info">
+        <div class="fichier-name">📄 ${f.nom}</div>
+        <div class="fichier-nb">${f.lignes.length} livre(s)</div>
+      </div>
+      <button class="btn-del" onclick="suppFichier(${i})">✕</button>
+    </div>`).join('');
+}
+
+function suppFichier(i) {
+  fichiers.splice(i, 1);
+  if (fichiers.length === 0) {
+    document.getElementById('zoneFichiers').style.display = 'none';
+    document.getElementById('zoneFusion').style.display = 'none';
+  } else {
+    afficherFichiers();
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// FUSION
+// ═══════════════════════════════════════════════════
+function fusionner() {
+  if (fichiers.length === 0) return;
+
+  const toutes = fichiers.flatMap(f => f.lignes);
+  const vus = new Map(); // isbn → premier livre
+  const doublons = [];
+  const uniques = [];
+
+  toutes.forEach(l => {
+    const isbn = l.isbn?.trim();
+    if (!isbn) {
+      // Pas d'ISBN → toujours inclure
+      uniques.push(l);
+      return;
+    }
+    if (vus.has(isbn)) {
+      doublons.push({ nouveau: l, existant: vus.get(isbn) });
+    } else {
+      vus.set(isbn, l);
+      uniques.push(l);
+    }
+  });
+
+  fusionné = uniques;
+
+  // Afficher stats
+  document.getElementById('fTotal').textContent = toutes.length;
+  document.getElementById('fDoublons').textContent = doublons.length;
+  document.getElementById('fUniques').textContent = uniques.length;
+
+  // Message
+  const ok = document.getElementById('fusionOk');
+  ok.textContent = `✅ Fusion réussie — ${uniques.length} livres uniques issus de ${fichiers.length} session(s)`;
+  ok.style.display = 'block';
+
+  // Doublons
+  if (doublons.length > 0) {
+    document.getElementById('zoneDoublons').style.display = 'block';
+    document.getElementById('listeDoublons').innerHTML = doublons.map(d => `
+      <div class="doublon-item">
+        <div class="dt">${d.existant.titre || '?'} <span class="badge b-warn">doublon</span></div>
+        <div class="dd">
+          ISBN : ${d.existant.isbn} · 
+          Session 1 : ${d.existant.source} · 
+          Session 2 : ${d.nouveau.source}
+        </div>
+      </div>`).join('');
+  } else {
+    document.getElementById('zoneDoublons').style.display = 'none';
+  }
+
+  // Aperçu (50 premières lignes)
+  document.getElementById('fusionBody').innerHTML = uniques.slice(0, 50).map(l => `
+    <tr>
+      <td style="font-family:monospace;font-size:10px">${l.isbn || '—'}</td>
+      <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${l.titre}">${l.titre || '—'}</td>
+      <td style="color:#666;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.auteur || '—'}</td>
+      <td style="color:#888;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.editeur || '—'}</td>
+      <td><span style="font-size:9px;background:#f0ece4;padding:2px 4px;border-radius:3px">${l.cat || '—'}</span></td>
+      <td style="font-size:10px;color:#aaa">${l.source || '—'}</td>
+    </tr>`).join('');
+
+  if (uniques.length > 50) {
+    document.getElementById('fusionBody').innerHTML += `
+      <tr><td colspan="6" style="text-align:center;color:#aaa;padding:10px;font-size:11px">
+        ... et ${uniques.length - 50} autres lignes (visible dans l'export)
+      </td></tr>`;
+  }
+
+  document.getElementById('zoneFusion').style.display = 'block';
+}
+
+// ═══════════════════════════════════════════════════
+// EXPORT
+// ═══════════════════════════════════════════════════
+function exportFusionCSV() {
+  const h = "ISBN,Titre,Auteur,\u00c9diteur,Cat\u00e9gorie,Confiance,Date,Source\n";
+  const rows = fusionné.map(l =>
+    [l.isbn,l.titre,l.auteur,l.editeur,l.cat,l.confiance,l.date,l.source]
+    .map(v => `"${(v||'').replace(/"/g,'""')}"`)
+    .join(',')
+  ).join("\n");
+  telecharger('\uFEFF' + h + rows, `inventaire_fusion_${today()}.csv`, 'text/csv;charset=utf-8;');
+}
+
+function exportFusionXLSX() {
+  const ws = XLSX.utils.json_to_sheet(fusionné.map(l => ({
+    'ISBN': l.isbn||'', 'Titre': l.titre||'', 'Auteur': l.auteur||'',
+    '\u00c9diteur': l.editeur||'', 'Cat\u00e9gorie': l.cat||'',
+    'Confiance': l.confiance||'', 'Date': l.date||'', 'Source': l.source||''
+  })));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Inventaire fusionné');
+  XLSX.writeFile(wb, `inventaire_fusion_${today()}.xlsx`);
+}
+
+function telecharger(contenu, nom, type) {
+  const blob = new Blob([contenu], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = nom; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function today() { return new Date().toISOString().slice(0, 10); }
+</script>
+</body>
+</html>
