@@ -1,0 +1,1437 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>LibraScan</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #F7F4EF; color: #1a1a1a; min-height: 100vh; }
+
+    header { background: #1C1C1E; padding: 14px 20px; position: sticky; top: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; }
+    header h1 { color: #fff; font-size: 20px; }
+    header .label { color: #C8A96E; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; }
+
+    .screen { display: none; padding: 20px; max-width: 700px; margin: 0 auto; }
+    .screen.active { display: block; }
+
+    /* TABS */
+    .tabs { display: flex; background: #fff; border-bottom: 2px solid #E0D8CC; }
+    .tab { flex: 1; padding: 12px 8px; border: none; background: none; font-size: 13px; cursor: pointer; color: #888; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+    .tab.active { color: #1C1C1E; font-weight: bold; border-bottom-color: #C8A96E; }
+
+    /* STEPS */
+    .steps { display: flex; justify-content: center; align-items: center; gap: 8px; margin-bottom: 20px; padding-top: 4px; }
+    .step { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: bold; }
+    .step.done { background: #4CAF50; color: #fff; }
+    .step.active { background: #C8A96E; color: #1C1C1E; }
+    .step.pending { background: #E0D8CC; color: #888; }
+    .step-line { width: 30px; height: 2px; background: #E0D8CC; }
+    .step-line.done { background: #4CAF50; }
+
+    /* CARDS */
+    .card { background: #fff; border-radius: 14px; padding: 18px; border: 1px solid #E0D8CC; margin-bottom: 14px; }
+
+    /* BOUTONS */
+    .btn-primary { display: block; width: 100%; background: #C8A96E; color: #1C1C1E; border: none; border-radius: 10px; padding: 14px; font-size: 15px; font-weight: bold; cursor: pointer; text-align: center; margin-bottom: 10px; }
+    .btn-dark { display: block; width: 100%; background: #1C1C1E; color: #C8A96E; border: none; border-radius: 10px; padding: 14px; font-size: 15px; font-weight: bold; cursor: pointer; text-align: center; margin-bottom: 10px; }
+    .btn-outline { display: block; width: 100%; background: #fff; color: #1C1C1E; border: 2px solid #C8A96E; border-radius: 10px; padding: 12px; font-size: 14px; font-weight: bold; cursor: pointer; text-align: center; margin-bottom: 10px; }
+    .btn-danger { background: none; border: none; color: #e57373; font-size: 13px; cursor: pointer; padding: 4px; }
+    .btn-row { display: flex; gap: 8px; margin-bottom: 10px; }
+    .btn-green { flex: 1; background: #E8F5E9; border: 1.5px solid #4CAF50; border-radius: 8px; padding: 10px; font-size: 13px; font-weight: bold; color: #2E7D32; cursor: pointer; }
+    .btn-red { flex: 1; background: #FFEBEE; border: 1.5px solid #F44336; border-radius: 8px; padding: 10px; font-size: 13px; font-weight: bold; color: #C62828; cursor: pointer; }
+    .btn-grey { flex: 1; background: #fff; border: 1.5px solid #E0D8CC; border-radius: 8px; padding: 10px; font-size: 13px; color: #555; cursor: pointer; }
+    .btn-sm { display: inline-block; background: #C8A96E; color: #1C1C1E; border: none; border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: bold; cursor: pointer; }
+
+    /* INPUTS */
+    .input-group { margin-bottom: 12px; }
+    .input-group label { display: block; font-size: 13px; color: #666; margin-bottom: 5px; font-weight: bold; }
+    .input-group input { width: 100%; border: 1.5px solid #E0D8CC; border-radius: 8px; padding: 11px; font-size: 14px; background: #fafafa; }
+    .input-group input:focus { outline: none; border-color: #C8A96E; }
+
+    /* STATS */
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+    .stat-card { background: #fff; border-radius: 12px; padding: 12px; text-align: center; border: 1px solid #E0D8CC; }
+    .stat-card .number { font-size: 22px; font-weight: bold; color: #C8A96E; }
+    .stat-card .lbl { font-size: 11px; color: #666; margin-top: 3px; }
+
+    /* CATEGORIES */
+    .section-title { font-size: 11px; color: #888; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; margin-top: 14px; }
+    .categories { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+    .cat-badge { background: #fff; border: 1px solid #E0D8CC; border-radius: 20px; padding: 3px 10px; font-size: 11px; color: #444; }
+    .cat-badge span { background: #C8A96E; color: #fff; border-radius: 10px; padding: 1px 6px; font-size: 10px; margin-left: 5px; font-weight: bold; }
+
+    /* DROP ZONE */
+    .drop-zone { border: 2px dashed #C8A96E; border-radius: 14px; padding: 28px 20px; text-align: center; cursor: pointer; background: #fff; margin-bottom: 14px; }
+    .drop-zone .icon { font-size: 40px; margin-bottom: 8px; }
+    .drop-zone h3 { font-size: 16px; margin-bottom: 5px; }
+    .drop-zone p { color: #666; font-size: 13px; line-height: 1.5; }
+
+    /* ALERTS */
+    .alert { border-radius: 10px; padding: 11px 14px; font-size: 13px; margin-bottom: 12px; display: none; }
+    .alert-error { background: #FFEBEE; border: 1px solid #EF9A9A; color: #C62828; }
+    .alert-success { background: #E8F5E9; border: 1px solid #A5D6A7; color: #1B5E20; }
+    .alert-warning { background: #FFF3CD; border: 1px solid #FFCD39; color: #664D03; }
+
+    /* ANALYSE */
+    .progress-box { background: #1C1C1E; color: #fff; border-radius: 12px; padding: 16px; margin-bottom: 14px; text-align: center; }
+    .progress-bar { height: 5px; background: #333; border-radius: 4px; margin-top: 10px; overflow: hidden; }
+    .progress-fill { height: 100%; background: #C8A96E; border-radius: 4px; transition: width 0.4s; }
+
+    /* CONFIRMATION NOMBRE */
+    .confirm-count-box { background: #fff; border-radius: 14px; border: 2px solid #C8A96E; padding: 20px; text-align: center; margin-bottom: 14px; }
+    .confirm-count-box .nb { font-size: 48px; font-weight: bold; color: #C8A96E; margin: 10px 0; }
+    .confirm-count-box p { font-size: 14px; color: #555; margin-bottom: 16px; }
+
+    /* RÉSULTATS */
+    .view-toggle { display: flex; gap: 8px; margin-bottom: 14px; }
+    .view-btn { flex: 1; padding: 9px; border: 1.5px solid #E0D8CC; border-radius: 8px; background: #fff; font-size: 13px; cursor: pointer; color: #666; }
+    .view-btn.active { border-color: #C8A96E; background: #FDF8F0; color: #1C1C1E; font-weight: bold; }
+
+    /* LIVRE CARDS */
+    .livre-card { background: #fff; border-radius: 12px; padding: 13px 14px; margin-bottom: 10px; border: 1px solid #E0D8CC; }
+    .livre-card.vert { border-left: 4px solid #4CAF50; }
+    .livre-card.jaune { border-left: 4px solid #FF9800; }
+    .livre-card.rouge { border-left: 4px solid #F44336; }
+    .livre-card.noir { border-left: 4px solid #555; }
+    .livre-card.resolu { border-left: 4px solid #9C27B0; opacity: 0.85; }
+
+    .livre-titre { font-weight: bold; font-size: 14px; margin-bottom: 3px; }
+    .livre-auteur { color: #555; font-size: 13px; margin-bottom: 2px; }
+    .livre-isbn { font-family: monospace; color: #888; font-size: 12px; margin-bottom: 6px; }
+    .livre-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+    .badge { border-radius: 5px; padding: 2px 7px; font-size: 11px; font-weight: bold; }
+    .badge-vert { background: #E8F5E9; color: #2E7D32; }
+    .badge-jaune { background: #FFF3E0; color: #E65100; }
+    .badge-rouge { background: #FFEBEE; color: #C62828; }
+    .badge-noir { background: #EEE; color: #555; }
+    .badge-cat { background: #F3F0EA; color: #555; }
+    .badge-pos { background: #E3F2FD; color: #1565C0; }
+
+    /* VALIDATION ZONES */
+    .validation-zone { background: #FFFBF0; border: 1px solid #FFE082; border-radius: 8px; padding: 12px; margin-top: 8px; }
+    .validation-zone p { color: #5D4037; font-size: 13px; margin-bottom: 8px; font-weight: bold; }
+    .choix-list { display: flex; flex-direction: column; gap: 6px; }
+    .choix-item { background: #fff; border: 1.5px solid #E0D8CC; border-radius: 8px; padding: 10px 12px; cursor: pointer; font-size: 13px; transition: border-color 0.2s; }
+    .choix-item:hover { border-color: #C8A96E; }
+    .choix-item.selected { border-color: #4CAF50; background: #E8F5E9; }
+    .choix-item .choix-titre { font-weight: bold; margin-bottom: 2px; }
+    .choix-item .choix-detail { color: #888; font-size: 12px; }
+    .choix-item .choix-isbn { font-family: monospace; color: #C8A96E; font-size: 12px; font-weight: bold; margin-top: 3px; }
+
+    .scan-btn { background: #fff; border: 2px dashed #C8A96E; border-radius: 8px; padding: 10px; text-align: center; cursor: pointer; font-size: 13px; color: #C8A96E; font-weight: bold; margin-top: 8px; }
+    .bnf-loading { text-align: center; padding: 12px; color: #888; font-size: 13px; }
+    .separateur { text-align: center; font-size: 12px; color: #aaa; margin: 8px 0; }
+
+    /* BOUTONS SESSION */
+    .session-box { background: #fff; border-radius: 14px; border: 2px solid #1C1C1E; padding: 18px; margin-top: 16px; }
+    .session-box h3 { font-size: 16px; margin-bottom: 14px; text-align: center; }
+
+    /* INVENTAIRE TABLE */
+    .inv-wrap { overflow-x: auto; background: #fff; border-radius: 12px; border: 1px solid #E0D8CC; margin-bottom: 14px; }
+    .inv-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .inv-table th { background: #F7F4EF; padding: 8px 10px; text-align: left; color: #888; font-size: 11px; text-transform: uppercase; border-bottom: 1px solid #E0D8CC; }
+    .inv-table td { padding: 8px 10px; border-bottom: 1px solid #f0ece4; vertical-align: top; }
+    .inv-table tr:last-child td { border-bottom: none; }
+
+    /* SPINNER */
+    .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #C8A96E33; border-top-color: #C8A96E; border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: middle; margin-right: 6px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    input[type="file"] { display: none; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="label">Inventaire</div>
+    <h1>📚 LibraScan</h1>
+  </div>
+  <div id="headerInfo" style="color:#C8A96E;font-size:12px;text-align:right"></div>
+</header>
+
+<div class="tabs" id="mainTabs" style="display:none">
+  <button class="tab active" onclick="showTab('scanTab')">📷 Scanner</button>
+  <button class="tab" onclick="showTab('inventaireTab')">📋 Inventaire (<span id="tabCount">0</span>)</button>
+</div>
+
+<!-- ═══════════════════════════════════
+     ÉCRAN 1 — CLÉ API
+═══════════════════════════════════ -->
+<div class="screen active" id="screen-api">
+  <div class="steps">
+    <div class="step active">1</div><div class="step-line"></div>
+    <div class="step pending">2</div><div class="step-line"></div>
+    <div class="step pending">3</div>
+  </div>
+  <div class="card">
+    <h2 style="font-size:18px;margin-bottom:10px">🔑 Clé API</h2>
+    <p style="font-size:13px;color:#555;margin-bottom:14px;line-height:1.6">LibraScan utilise l'IA Claude (Anthropic) pour analyser vos photos. Chaque libraire utilise sa propre clé API.</p>
+    <a href="https://console.anthropic.com" target="_blank" class="btn-outline">1. Créer mon compte Anthropic →</a>
+    <div class="input-group">
+      <label>2. Collez votre clé API</label>
+      <input type="password" id="apiKeyInput" placeholder="sk-ant-..." autocomplete="off">
+    </div>
+    <div class="alert alert-error" id="apiError"></div>
+    <div class="alert alert-success" id="apiSuccess"></div>
+    <button class="btn-primary" onclick="validerCle()">✓ Valider ma clé API</button>
+    <p style="font-size:11px;color:#aaa;text-align:center">Sauvegardée uniquement sur votre appareil</p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     ÉCRAN 2 — RÉFÉRENTIEL
+═══════════════════════════════════ -->
+<div class="screen" id="screen-ref">
+  <div class="steps">
+    <div class="step done">✓</div><div class="step-line done"></div>
+    <div class="step active">2</div><div class="step-line"></div>
+    <div class="step pending">3</div>
+  </div>
+
+  <!-- Reprendre session -->
+  <div class="alert alert-warning" id="sessionAlert" style="display:none">
+    📂 Un inventaire en cours a été trouvé (<span id="sessionNb">0</span> livres).
+    <div class="btn-row" style="margin-top:8px">
+      <button class="btn-green" onclick="reprendreSession()">Reprendre</button>
+      <button class="btn-red" onclick="nouvelleSession()">Nouvel inventaire</button>
+    </div>
+  </div>
+
+  <div class="drop-zone" id="dropZoneRef" onclick="document.getElementById('fileRef').click()">
+    <div class="icon">📂</div>
+    <h3>Charger le référentiel</h3>
+    <p>Fichier Excel ou CSV avec vos références et ISBN</p>
+    <div style="margin-top:12px"><span class="btn-sm">Choisir un fichier</span></div>
+  </div>
+  <input type="file" id="fileRef" accept=".xlsx,.xls,.csv">
+  <div class="alert alert-error" id="refError"></div>
+
+  <div id="refStats" style="display:none">
+    <div class="stats">
+      <div class="stat-card"><div class="number" id="statTotal">0</div><div class="lbl">Références</div></div>
+      <div class="stat-card"><div class="number" id="statISBN">0</div><div class="lbl">Avec ISBN</div></div>
+      <div class="stat-card"><div class="number" id="statCats">0</div><div class="lbl">Catégories</div></div>
+    </div>
+    <div class="section-title">Catégories</div>
+    <div class="categories" id="catList"></div>
+    <button class="btn-dark" onclick="passerScan()">✅ Commencer le scan →</button>
+    <button class="btn-danger" style="width:100%;margin-top:4px" onclick="changerRef()">Changer de fichier</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     ÉCRAN 3 — SCAN + INVENTAIRE
+═══════════════════════════════════ -->
+<div class="screen" id="screen-scan">
+
+  <!-- TAB SCAN -->
+  <div id="scanTab">
+
+    <!-- Zone photo -->
+    <div class="drop-zone" id="dropZoneScan">
+      <div class="icon">📸</div>
+      <h3>Photographier une étagère</h3>
+      <p>Prenez une photo de face. L'IA analysera toutes les tranches automatiquement.</p>
+      <div style="margin-top:12px;display:flex;gap:8px;justify-content:center">
+        <span class="btn-sm" onclick="document.getElementById('fileCamera').click()">📷 Caméra</span>
+        <span class="btn-sm" style="background:#fff;border:1.5px solid #C8A96E;color:#1C1C1E" onclick="document.getElementById('fileGalerie').click()">🖼️ Galerie</span>
+      </div>
+    </div>
+    <input type="file" id="fileCamera" accept="image/*" capture="environment">
+    <input type="file" id="fileGalerie" accept="image/*">
+
+    <!-- Preview -->
+    <div id="photoPreview" style="display:none;margin-bottom:12px;border-radius:12px;overflow:hidden;border:1px solid #E0D8CC">
+      <img id="photoImg" style="width:100%;display:block;max-height:200px;object-fit:cover">
+    </div>
+
+    <!-- Progression -->
+    <div id="analyseProgress" style="display:none">
+      <div class="progress-box">
+        <div><span class="spinner"></span><span id="analyseMsg">Analyse...</span></div>
+        <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+        <div style="font-size:11px;color:#aaa;margin-top:6px" id="analyseDetail"></div>
+      </div>
+    </div>
+
+    <!-- CONFIRMATION NOMBRE -->
+    <div id="confirmCountBox" style="display:none">
+      <div class="confirm-count-box">
+        <p>L'IA a détecté ce nombre de livres sur l'étagère :</p>
+        <div class="nb" id="nbDetecte">0</div>
+        <p>Est-ce correct ?</p>
+        <div class="btn-row">
+          <button class="btn-green" onclick="validerNombre()">✅ Oui, c'est correct</button>
+          <button class="btn-red" onclick="scannerANouveau()">🔄 Scanner à nouveau</button>
+        </div>
+      </div>
+      <div id="rescanBox" style="display:none" class="card">
+        <p style="font-size:13px;color:#555;margin-bottom:10px">Combien de livres y a-t-il sur cette étagère ?</p>
+        <div class="input-group">
+          <input type="number" id="nbAttendu" placeholder="Ex: 24" min="1" max="100">
+        </div>
+        <button class="btn-primary" onclick="relancerScan()">📸 Reprendre la photo</button>
+      </div>
+    </div>
+
+    <!-- Résultats -->
+    <div id="analyseResultats" style="display:none">
+
+      <!-- Summary -->
+      <div class="alert alert-success" id="summaryBox" style="display:block"></div>
+
+      <!-- Toggle vue -->
+      <div class="view-toggle">
+        <button class="view-btn active" id="vueCouleurBtn" onclick="setVue('couleur')">🎨 Par couleur</button>
+        <button class="view-btn" id="vuePositionBtn" onclick="setVue('position')">📍 Par position</button>
+      </div>
+
+      <!-- Vue par couleur -->
+      <div id="vueCouleur">
+        <div id="secVert" style="display:none">
+          <div class="section-title">🟢 Identifiés automatiquement</div>
+          <div id="listVert"></div>
+        </div>
+        <div id="secJaune" style="display:none">
+          <div class="section-title">🟡 À valider</div>
+          <div id="listJaune"></div>
+        </div>
+        <div id="secRouge" style="display:none">
+          <div class="section-title">🔴 Absents du référentiel</div>
+          <div id="listRouge"></div>
+        </div>
+        <div id="secNoir" style="display:none">
+          <div class="section-title">⚫ Non identifiables</div>
+          <div id="listNoir"></div>
+        </div>
+      </div>
+
+      <!-- Vue par position -->
+      <div id="vuePosition" style="display:none">
+        <div id="listPosition"></div>
+      </div>
+
+      <!-- Boutons session -->
+      <div class="session-box" id="sessionBox" style="display:none">
+        <h3>Que souhaitez-vous faire ?</h3>
+        <button class="btn-dark" onclick="ajouterEtagere()">✅ Ajouter l'étagère à l'inventaire</button>
+        <button class="btn-outline" onclick="recommencerEtagere()">🔄 Scanner à nouveau cette étagère</button>
+      </div>
+    </div>
+
+    <!-- Boutons post-ajout -->
+    <div id="postAjoutBox" style="display:none">
+      <div class="session-box">
+        <h3>Étagère ajoutée ✅</h3>
+        <button class="btn-dark" onclick="continuerInventaire()">📸 Scanner une nouvelle étagère</button>
+        <button class="btn-outline" onclick="cloturerSession()">💾 Clôturer la session pour le moment</button>
+      </div>
+    </div>
+
+    <div class="alert alert-error" id="scanError"></div>
+
+    <!-- Conseils -->
+    <div class="card" id="conseilsCard">
+      <div class="section-title">Conseils photo</div>
+      <div style="font-size:13px;color:#555;line-height:2">
+        💡 Photographiez de face, à hauteur des livres<br>
+        🔆 Bonne lumière = meilleure reconnaissance<br>
+        📐 Cadrez l'étagère entière<br>
+        📚 Plusieurs étagères par photo : de haut en bas
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB INVENTAIRE -->
+  <div id="inventaireTab" style="display:none">
+    <div id="invVide" style="text-align:center;padding:50px 20px;color:#aaa">
+      <div style="font-size:48px;margin-bottom:14px">📭</div>
+      <div>Aucun livre inventorié</div>
+    </div>
+    <div id="invContenu" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div style="font-size:13px;color:#666"><span id="invNb">0</span> livre(s)</div>
+        <button class="btn-danger" onclick="viderInventaire()">Tout effacer</button>
+      </div>
+      <div class="inv-wrap">
+        <table class="inv-table">
+          <thead>
+            <tr>
+              <th>ISBN</th><th>Titre</th><th>Auteur</th><th>Éditeur</th><th>Cat.</th><th>Conf.</th>
+            </tr>
+          </thead>
+          <tbody id="invBody"></tbody>
+        </table>
+      </div>
+      <button class="btn-primary" onclick="exporterExcel()">↓ Exporter Excel (.xlsx)</button>
+      <button class="btn-outline" onclick="exporterCSV()">↓ Exporter CSV</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// ÉTAT GLOBAL
+// ═══════════════════════════════════════════════════════
+const STATE = {
+  apiKey: localStorage.getItem('ls_apikey') || '',
+  referentiel: [],
+  inventaire: JSON.parse(localStorage.getItem('ls_inventaire') || '[]'),
+  analyseEnCours: [],
+  nbAttendu: null,
+  vueActive: 'couleur'
+};
+
+const BNF_BASE = 'https://catalogue.bnf.fr/api/SRU?version=1.2&operation=searchRetrieve&recordSchema=dublincore&maximumRecords=8';
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+window.onload = function() {
+  if (STATE.apiKey) showScreen('screen-ref');
+  if (STATE.inventaire.length > 0) {
+    document.getElementById('sessionAlert').style.display = 'block';
+    document.getElementById('sessionNb').textContent = STATE.inventaire.length;
+  }
+  mettreAJourInventaire();
+
+  document.getElementById('fileRef').addEventListener('change', e => { if (e.target.files[0]) importerRef(e.target.files[0]); });
+  document.getElementById('fileCamera').addEventListener('change', e => { if (e.target.files[0]) lancerAnalyse(e.target.files[0]); });
+  document.getElementById('fileGalerie').addEventListener('change', e => { if (e.target.files[0]) lancerAnalyse(e.target.files[0]); });
+
+  // Drag & drop ref
+  const dz = document.getElementById('dropZoneRef');
+  dz.addEventListener('dragover', e => e.preventDefault());
+  dz.addEventListener('drop', e => { e.preventDefault(); if (e.dataTransfer.files[0]) importerRef(e.dataTransfer.files[0]); });
+};
+
+// ═══════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.getElementById('mainTabs').style.display = id === 'screen-scan' ? 'flex' : 'none';
+}
+function showTab(id) {
+  ['scanTab','inventaireTab'].forEach(t => document.getElementById(t).style.display = t === id ? 'block' : 'none');
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', (i===0&&id==='scanTab')||(i===1&&id==='inventaireTab')));
+}
+function passerScan() { showScreen('screen-scan'); }
+function changerRef() { STATE.referentiel = []; document.getElementById('refStats').style.display = 'none'; document.getElementById('dropZoneRef').style.display = 'block'; }
+
+// ═══════════════════════════════════════════════════════
+// SESSION
+// ═══════════════════════════════════════════════════════
+function reprendreSession() {
+  document.getElementById('sessionAlert').style.display = 'none';
+  passerScan();
+  showTab('inventaireTab');
+}
+function nouvelleSession() {
+  if (!confirm('Supprimer l\'inventaire en cours ?')) return;
+  STATE.inventaire = [];
+  sauvegarder();
+  mettreAJourInventaire();
+  document.getElementById('sessionAlert').style.display = 'none';
+}
+function sauvegarder() {
+  localStorage.setItem('ls_inventaire', JSON.stringify(STATE.inventaire));
+  document.getElementById('tabCount').textContent = STATE.inventaire.length;
+}
+
+// ═══════════════════════════════════════════════════════
+// ÉTAPE 1 — CLÉ API
+// ═══════════════════════════════════════════════════════
+async function validerCle() {
+  const key = document.getElementById('apiKeyInput').value.trim();
+  if (!key.startsWith('sk-')) { showAlert('apiError', 'La clé doit commencer par sk-'); return; }
+  hideAlert('apiError');
+  document.querySelector('#screen-api .btn-primary').innerHTML = '<span class="spinner"></span>Vérification...';
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 10, messages: [{ role: 'user', content: 'ok' }] })
+    });
+    if (res.ok || res.status === 400) {
+      localStorage.setItem('ls_apikey', key);
+      STATE.apiKey = key;
+      showAlert('apiSuccess', '✅ Clé valide !');
+      setTimeout(() => showScreen('screen-ref'), 800);
+    } else {
+      showAlert('apiError', 'Clé invalide. Vérifiez sur console.anthropic.com');
+    }
+  } catch(e) { showAlert('apiError', 'Erreur réseau. Vérifiez votre connexion.'); }
+  document.querySelector('#screen-api .btn-primary').innerHTML = '✓ Valider ma clé API';
+}
+
+// ═══════════════════════════════════════════════════════
+// ÉTAPE 2 — RÉFÉRENTIEL
+// ═══════════════════════════════════════════════════════
+const COL = {
+  isbn: ['code article','isbn','ean','code'],
+  titre: ['titre','title','nom'],
+  auteur: ['auteur','author','auteurs'],
+  editeur: ['editeur','éditeur','publisher'],
+  categorie: ['nom catégorie','nom categorie','catégorie','categorie','category'],
+  quantite: ['qté','qte','quantite','quantité','stock','qty']
+};
+function findCol(headers, keys) {
+  for (const k of keys) { const i = headers.findIndex(h => h.toLowerCase().trim() === k); if (i !== -1) return i; }
+  return -1;
+}
+
+function importerRef(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      let rows = [];
+      if (ext === 'csv') {
+        rows = e.target.result.split('\n').map(l => l.split(';').map(c => c.replace(/^"|"$/g,'').trim()));
+      } else {
+        const wb = XLSX.read(e.target.result, { type: 'array' });
+        rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '' });
+      }
+      construireRef(rows, file.name);
+    } catch(err) { showAlert('refError', 'Erreur lecture : ' + err.message); }
+  };
+  ext === 'csv' ? reader.readAsText(file,'UTF-8') : reader.readAsArrayBuffer(file);
+}
+
+function construireRef(rows, filename) {
+  const headers = rows[0].map(h => String(h).toLowerCase().trim());
+  const idxISBN = findCol(headers, COL.isbn);
+  const idxTitre = findCol(headers, COL.titre);
+  const idxAuteur = findCol(headers, COL.auteur);
+  const idxEdit = findCol(headers, COL.editeur);
+  const idxCat = findCol(headers, COL.categorie);
+  const idxQte = findCol(headers, COL.quantite);
+  if (idxTitre === -1) { showAlert('refError', 'Colonne Titre introuvable.'); return; }
+
+  const refs = []; const cats = {};
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row || row.every(c => !c)) continue;
+    const titre = String(row[idxTitre]||'').trim();
+    if (!titre) continue;
+    const isbn = idxISBN !== -1 ? String(row[idxISBN]||'').trim() : '';
+    const auteur = idxAuteur !== -1 ? String(row[idxAuteur]||'').trim() : '';
+    const editeur = idxEdit !== -1 ? String(row[idxEdit]||'').trim() : '';
+    const cat = idxCat !== -1 ? String(row[idxCat]||'').trim() : '';
+    const qte = idxQte !== -1 ? String(row[idxQte]||'').trim() : '';
+    refs.push({ isbn, titre, auteur, editeur, categorie: cat, quantite: qte });
+    if (cat) cats[cat] = (cats[cat]||0) + 1;
+  }
+  STATE.referentiel = refs;
+  const avecISBN = refs.filter(r => r.isbn && r.isbn.length >= 10).length;
+  document.getElementById('statTotal').textContent = refs.length;
+  document.getElementById('statISBN').textContent = avecISBN;
+  document.getElementById('statCats').textContent = Object.keys(cats).length;
+  const catSorted = Object.entries(cats).sort((a,b) => b[1]-a[1]);
+  document.getElementById('catList').innerHTML = catSorted.map(([c,n]) => `<div class="cat-badge">${c}<span>${n}</span></div>`).join('');
+  document.getElementById('dropZoneRef').innerHTML = `<div class="icon">✅</div><h3>${filename}</h3><p style="color:#2e7d32;font-weight:bold">${refs.length} références chargées</p>`;
+  document.getElementById('refStats').style.display = 'block';
+}
+
+// ═══════════════════════════════════════════════════════
+// UTILITAIRES
+// ═══════════════════════════════════════════════════════
+function norm(str) {
+  return (str||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim();
+}
+function esc(str) { return (str||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'\\"'); }
+function tronq(str, n) { return str && str.length > n ? str.slice(0,n)+'…' : (str||'—'); }
+
+function compresser(file, maxW=1400, q=0.80) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let w = img.width, h = img.height;
+        if (w > maxW) { h = Math.round(h*maxW/w); w = maxW; }
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img,0,0,w,h);
+        const dataUrl = canvas.toDataURL('image/jpeg', q);
+        resolve({ base64: dataUrl.split(',')[1], dataUrl });
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function appelAPI(messages, maxTokens=4000) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': STATE.apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+    body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: maxTokens, messages })
+  });
+  if (!res.ok) throw new Error('Erreur API ' + res.status);
+  const data = await res.json();
+  return data.content?.find(b => b.type==='text')?.text || '';
+}
+
+function parseJSON(text) {
+  try { return JSON.parse(text.trim()); } catch {
+    const m = text.match(/\{[\s\S]*\}/);
+    if (m) try { return JSON.parse(m[0]); } catch {}
+    return null;
+  }
+}
+
+function setProgress(pct, msg, detail='') {
+  document.getElementById('progressFill').style.width = pct+'%';
+  document.getElementById('analyseMsg').textContent = msg;
+  document.getElementById('analyseDetail').textContent = detail;
+}
+
+// ═══════════════════════════════════════════════════════
+// MATCHING LOCAL
+// ═══════════════════════════════════════════════════════
+function scorerMatch(livre, ref) {
+  let score = 0;
+  const tL = norm(livre.titre||''); const aL = norm(livre.auteur||'');
+  const tR = norm(ref.titre||''); const aR = norm(ref.auteur||'');
+  const motsTitre = tL.split(' ').filter(m => m.length >= 4);
+  const motsAuteur = aL.split(' ').filter(m => m.length >= 3);
+  motsTitre.forEach(m => { if (tR.includes(m)) score += 10; });
+  motsAuteur.forEach(m => { if (aR.includes(m)) score += 8; });
+  if (tL.length > 3 && tR === tL) score += 30;
+  if (livre.numero_collection && ref.isbn && ref.isbn.includes(livre.numero_collection)) score += 15;
+  if (livre.collection && ref.editeur) {
+    const cN = norm(livre.collection); const eN = norm(ref.editeur);
+    if (eN.includes(cN) || cN.includes(eN)) score += 5;
+  }
+  return score;
+}
+
+// ═══════════════════════════════════════════════════════
+// ÉTAPE 3 — ANALYSE PHOTO
+// ═══════════════════════════════════════════════════════
+async function lancerAnalyse(file) {
+  document.getElementById('scanError').style.display = 'none';
+  document.getElementById('analyseResultats').style.display = 'none';
+  document.getElementById('confirmCountBox').style.display = 'none';
+  document.getElementById('postAjoutBox').style.display = 'none';
+  document.getElementById('sessionBox').style.display = 'none';
+  document.getElementById('conseilsCard').style.display = 'none';
+  document.getElementById('analyseProgress').style.display = 'block';
+  setProgress(5, 'Compression de l\'image...','');
+
+  const { base64, dataUrl } = await compresser(file);
+  document.getElementById('photoImg').src = dataUrl;
+  document.getElementById('photoPreview').style.display = 'block';
+
+  (async () => {
+    try {
+      setProgress(15, 'Passe 1 : détection des livres...', 'Identification des tranches');
+
+      const nbHint = STATE.nbAttendu ? `\nATTENTION : il y a exactement ${STATE.nbAttendu} livres sur cette étagère, assure-toi de tous les détecter sans en oublier.` : '';
+
+      const prompt1 = `Tu es un expert en identification de livres pour librairie. Analyse cette photo d'étagère.${nbHint}
+
+Détecte TOUS les livres visibles. Pour chaque livre indique :
+- position : numéro de gauche à droite (1, 2, 3...)
+- etagere : numéro d'étagère de haut en bas (1 = la plus haute)
+- titre : tel que visible sur la tranche
+- auteur : tel que visible
+- editeur_reel : déduit de la charte graphique et du logo (PAS le texte brut — ex: logo DiS = De Saxus, carré blanc = Folio, etc.)
+- collection : nom de collection si visible (Folio, Points, Babel, 10/18, GF, Gallmeister, Totem, Rivages...)
+- numero_collection : numéro de collection si visible sur la tranche (ex: "162", "621"...)
+- format : POCHE (petit format ~11x18cm, tranche fine) / BROCHE (format moyen ~14x21cm) / RELIE (couverture rigide) / COLLECTOR (finitions spéciales)
+- lisibilite : BON / MOYEN / FAIBLE
+
+Réponds UNIQUEMENT en JSON valide sans backticks :
+{
+  "nb_livres": 15,
+  "nb_etageres": 2,
+  "livres": [
+    {
+      "position": 1,
+      "etagere": 1,
+      "titre": "...",
+      "auteur": "...",
+      "editeur_reel": "...",
+      "collection": "Folio",
+      "numero_collection": "162",
+      "format": "POCHE",
+      "lisibilite": "BON"
+    }
+  ]
+}`;
+
+      const res1 = await appelAPI([{
+        role: 'user',
+        content: [
+          { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: base64 } },
+          { type: 'text', text: prompt1 }
+        ]
+      }]);
+
+      const passe1 = parseJSON(res1);
+      if (!passe1 || !passe1.livres) throw new Error('Analyse échouée — photo trop floue ?');
+
+      STATE.nbAttendu = null; // reset
+
+      // Afficher confirmation du nombre
+      document.getElementById('analyseProgress').style.display = 'none';
+      document.getElementById('nbDetecte').textContent = passe1.nb_livres || passe1.livres.length;
+      document.getElementById('confirmCountBox').style.display = 'block';
+
+      // Stocker passe1 pour la suite
+      STATE._passe1 = passe1;
+      STATE._base64 = base64;
+
+    } catch(err) {
+      document.getElementById('analyseProgress').style.display = 'none';
+      document.getElementById('scanError').textContent = '⚠️ ' + err.message;
+      document.getElementById('scanError').style.display = 'block';
+      document.getElementById('conseilsCard').style.display = 'block';
+    }
+  })();
+}
+
+// ═══════════════════════════════════════════════════════
+// CONFIRMATION NOMBRE
+// ═══════════════════════════════════════════════════════
+function validerNombre() {
+  document.getElementById('confirmCountBox').style.display = 'none';
+  document.getElementById('analyseProgress').style.display = 'block';
+  continuerAnalyse(STATE._passe1);
+}
+
+function scannerANouveau() {
+  document.getElementById('rescanBox').style.display = 'block';
+}
+
+function relancerScan() {
+  const nb = parseInt(document.getElementById('nbAttendu').value);
+  if (!nb || nb < 1) { alert('Entrez un nombre valide.'); return; }
+  STATE.nbAttendu = nb;
+  document.getElementById('confirmCountBox').style.display = 'none';
+  document.getElementById('rescanBox').style.display = 'none';
+  document.getElementById('fileCamera').value = '';
+  document.getElementById('fileGalerie').value = '';
+  // Relancer la caméra
+  document.getElementById('fileCamera').click();
+}
+
+// ═══════════════════════════════════════════════════════
+// SUITE ANALYSE — MATCHING LOCAL
+// ═══════════════════════════════════════════════════════
+async function continuerAnalyse(passe1) {
+  try {
+    setProgress(30, `Matching de ${passe1.livres.length} livres...`, 'Recherche dans le référentiel');
+
+    const resultats = passe1.livres.map((livre, idx) => {
+      setProgress(30 + Math.round((idx/passe1.livres.length)*55), `Livre ${idx+1}/${passe1.livres.length}...`, livre.titre||'');
+
+      if (livre.lisibilite === 'FAIBLE' && !livre.titre) {
+        return { ...livre, confiance: 'NOIR', isbn_trouve: '', titre_ref: '', auteur_ref: '', categorie: '', raison: 'Tranche illisible' };
+      }
+
+      const scores = STATE.referentiel.map(ref => ({ ref, score: scorerMatch(livre, ref) }))
+        .filter(s => s.score > 0).sort((a,b) => b.score - a.score);
+
+      const meilleur = scores[0];
+
+      if (!meilleur || meilleur.score < 18) {
+        // Absent du référentiel → rouge directement
+        return { ...livre, confiance: 'ROUGE', isbn_trouve: '', titre_ref: livre.titre||'', auteur_ref: livre.auteur||'', categorie: '', raison: 'Absent du référentiel', _candidats: [] };
+      }
+
+      // Chercher toutes les entrées du référentiel avec même titre ET même auteur
+      const tL = norm(livre.titre||'');
+      const aL = norm(livre.auteur||'');
+      const motsTitre = tL.split(' ').filter(m => m.length >= 4);
+      const motsAuteur = aL.split(' ').filter(m => m.length >= 3);
+
+      const memesTitreAuteur = STATE.referentiel.filter(ref => {
+        const tR = norm(ref.titre||'');
+        const aR = norm(ref.auteur||'');
+        const titreOK = motsTitre.length > 0 && motsTitre.every(m => tR.includes(m));
+        const auteurOK = motsAuteur.length === 0 || motsAuteur.some(m => aR.includes(m));
+        return titreOK && auteurOK;
+      });
+
+      if (memesTitreAuteur.length >= 2) {
+        // Plusieurs éditions du même titre+auteur dans le référentiel → jaune
+        return { ...livre, confiance: 'JAUNE', isbn_trouve: '', titre_ref: memesTitreAuteur[0].titre, auteur_ref: memesTitreAuteur[0].auteur, categorie: memesTitreAuteur[0].categorie||'', raison: `${memesTitreAuteur.length} éditions possibles dans le référentiel`, _candidats: memesTitreAuteur.slice(0,5) };
+      } else if (memesTitreAuteur.length === 1) {
+        // Une seule correspondance certaine → vert
+        const ref = memesTitreAuteur[0];
+        return { ...livre, confiance: 'VERT', isbn_trouve: ref.isbn, titre_ref: ref.titre, auteur_ref: ref.auteur, categorie: ref.categorie, editeur: ref.editeur, raison: '', _candidats: [] };
+      } else {
+        // Score positif mais pas de match titre+auteur strict → rouge
+        return { ...livre, confiance: 'ROUGE', isbn_trouve: '', titre_ref: livre.titre||'', auteur_ref: livre.auteur||'', categorie: '', raison: 'Absent du référentiel', _candidats: [] };
+      }
+    });
+
+    setProgress(100, 'Analyse terminée !', '');
+    STATE.analyseEnCours = resultats;
+
+    setTimeout(() => {
+      document.getElementById('analyseProgress').style.display = 'none';
+      afficherResultats(resultats);
+    }, 300);
+
+  } catch(err) {
+    document.getElementById('analyseProgress').style.display = 'none';
+    document.getElementById('scanError').textContent = '⚠️ ' + err.message;
+    document.getElementById('scanError').style.display = 'block';
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// AFFICHAGE RÉSULTATS
+// ═══════════════════════════════════════════════════════
+function afficherResultats(resultats) {
+  const verts = resultats.filter(r => r.confiance === 'VERT');
+  const jaunes = resultats.filter(r => r.confiance === 'JAUNE');
+  const rouges = resultats.filter(r => r.confiance === 'ROUGE');
+  const noirs = resultats.filter(r => r.confiance === 'NOIR');
+
+  document.getElementById('summaryBox').textContent =
+    `✅ ${verts.length} automatiques · 🟡 ${jaunes.length} à valider · 🔴 ${rouges.length} absents · ⚫ ${noirs.length} illisibles`;
+  document.getElementById('summaryBox').style.display = 'block';
+
+  // Vue couleur
+  document.getElementById('secVert').style.display = verts.length ? 'block' : 'none';
+  document.getElementById('listVert').innerHTML = verts.map(r => cardVert(r)).join('');
+  document.getElementById('secJaune').style.display = jaunes.length ? 'block' : 'none';
+  document.getElementById('listJaune').innerHTML = jaunes.map(r => cardJaune(r)).join('');
+  document.getElementById('secRouge').style.display = rouges.length ? 'block' : 'none';
+  document.getElementById('listRouge').innerHTML = rouges.map(r => cardRouge(r)).join('');
+  document.getElementById('secNoir').style.display = noirs.length ? 'block' : 'none';
+  document.getElementById('listNoir').innerHTML = noirs.map(r => cardNoir(r)).join('');
+
+  // Vue position (triée étagère haut→bas, gauche→droite)
+  const tries = [...resultats].sort((a,b) => (a.etagere||1) - (b.etagere||1) || (a.position||0) - (b.position||0));
+  let posHTML = '';
+  let etagereActuelle = null;
+  tries.forEach(r => {
+    const et = r.etagere || 1;
+    if (et !== etagereActuelle) {
+      posHTML += `<div class="section-title">Étagère ${et}</div>`;
+      etagereActuelle = et;
+    }
+    posHTML += cardPosition(r);
+  });
+  document.getElementById('listPosition').innerHTML = posHTML;
+
+  setVue('couleur');
+  document.getElementById('analyseResultats').style.display = 'block';
+  document.getElementById('sessionBox').style.display = 'block';
+  document.getElementById('conseilsCard').style.display = 'none';
+}
+
+function setVue(vue) {
+  STATE.vueActive = vue;
+  document.getElementById('vueCouleur').style.display = vue === 'couleur' ? 'block' : 'none';
+  document.getElementById('vuePosition').style.display = vue === 'position' ? 'block' : 'none';
+  document.getElementById('vueCouleurBtn').classList.toggle('active', vue === 'couleur');
+  document.getElementById('vuePositionBtn').classList.toggle('active', vue === 'position');
+}
+
+// ═══════════════════════════════════════════════════════
+// CARTES LIVRES
+// ═══════════════════════════════════════════════════════
+function cardVert(r) {
+  return `<div class="livre-card vert">
+    <div class="livre-titre">${r.titre_ref||r.titre||'?'}</div>
+    <div class="livre-auteur">✍️ ${r.auteur_ref||r.auteur||'—'}</div>
+    <div class="livre-isbn">ISBN : ${r.isbn_trouve||'—'}</div>
+    <div class="livre-meta">
+      ${r.categorie?`<span class="badge badge-cat">${r.categorie}</span>`:''}
+      ${r.format?`<span class="badge badge-cat">${r.format}</span>`:''}
+      ${r.editeur?`<span class="badge badge-cat">${r.editeur}</span>`:''}
+      <span class="badge badge-vert">🟢 Auto</span>
+    </div>
+  </div>`;
+}
+
+function cardPosition(r) {
+  const couleurs = { VERT:'vert', JAUNE:'jaune', ROUGE:'rouge', NOIR:'noir' };
+  const badges = { VERT:'badge-vert', JAUNE:'badge-jaune', ROUGE:'badge-rouge', NOIR:'badge-noir' };
+  const cls = couleurs[r.confiance] || 'rouge';
+  const bdg = badges[r.confiance] || 'badge-rouge';
+  return `<div class="livre-card ${cls}">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div style="flex:1">
+        <div class="livre-titre">${r.titre_ref||r.titre||'?'}</div>
+        <div class="livre-auteur">✍️ ${r.auteur_ref||r.auteur||'—'}</div>
+        ${r.isbn_trouve?`<div class="livre-isbn">ISBN : ${r.isbn_trouve}</div>`:''}
+      </div>
+      <span class="badge ${bdg}" style="margin-left:8px;white-space:nowrap">
+        ${r.confiance==='VERT'?'🟢':r.confiance==='JAUNE'?'🟡':r.confiance==='ROUGE'?'🔴':'⚫'}
+      </span>
+    </div>
+  </div>`;
+}
+
+function cardJaune(r) {
+  const idx = r._idx;
+  return `<div class="livre-card jaune" id="card-${idx}">
+    <div style="font-size:11px;color:#888;margin-bottom:4px">L'IA a identifié :</div>
+    <div class="livre-titre">${r.titre_ref||r.titre||'?'}</div>
+    <div class="livre-auteur">✍️ ${r.auteur_ref||r.auteur||'—'}</div>
+    <div class="livre-meta">
+      ${r.format?`<span class="badge badge-cat">${r.format}</span>`:''}
+      ${r.collection?`<span class="badge badge-cat">${r.collection}</span>`:''}
+      <span class="badge badge-jaune">🟡 À valider</span>
+    </div>
+    <div class="validation-zone">
+      <p>Ce livre est-il bien identifié ?</p>
+      <div class="btn-row">
+        <button class="btn-green" onclick="jaune_oui(${idx})">✅ C'est juste</button>
+        <button class="btn-red" onclick="jaune_non(${idx})">❌ Ce n'est pas ça</button>
+      </div>
+      <div id="jaune-suite-${idx}" style="display:none"></div>
+    </div>
+  </div>`;
+}
+
+function cardRouge(r) {
+  const ridx = r._idx;
+  const titreConnu = r.titre && r.titre.length > 2;
+  return `<div class="livre-card rouge" id="card-${ridx}">
+    ${titreConnu ? `
+      <div style="font-size:11px;color:#888;margin-bottom:4px">L'IA a identifié :</div>
+      <div class="livre-titre">${r.titre}</div>
+      <div class="livre-auteur">✍️ ${r.auteur||'—'}</div>
+      <div class="livre-meta">
+        ${r.format?`<span class="badge badge-cat">${r.format}</span>`:''}
+        ${r.collection?`<span class="badge badge-cat">${r.collection}</span>`:''}
+        <span class="badge badge-rouge">🔴 Absent du référentiel</span>
+      </div>
+      <div class="validation-zone">
+        <p>Ce livre est-il bien identifié ?</p>
+        <div class="btn-row">
+          <button class="btn-green" onclick="rouge_oui(${ridx})">✅ C'est juste</button>
+          <button class="btn-red" onclick="rouge_non(${ridx})">❌ Ce n'est pas ça</button>
+        </div>
+        <div id="rouge-suite-${ridx}" style="display:none"></div>
+      </div>` : `
+      <div class="livre-titre" style="color:#aaa;font-style:italic">Titre non identifié</div>
+      <div class="livre-meta"><span class="badge badge-rouge">🔴 Illisible</span></div>
+      <div class="validation-zone">
+        <p>Corriger ou scanner le code-barres</p>
+        <button class="btn-grey" style="width:100%;margin-bottom:8px" onclick="corrigerTitre(${ridx})">✏️ Saisir le titre</button>
+        <div class="scan-btn" onclick="lancerScan(${ridx})">📷 Scanner le code-barres ISBN</div>
+      </div>`}
+  </div>`;
+}
+
+function cardNoir(r) {
+  const nidx = r._idx;
+  return `<div class="livre-card noir" id="card-${nidx}">
+    <div class="livre-titre" style="color:#aaa;font-style:italic">Livre non identifiable</div>
+    <div class="livre-meta"><span class="badge badge-noir">⚫ Tranche illisible</span></div>
+    <div class="validation-zone">
+      <p>Scanner le code-barres ou saisir l'ISBN</p>
+      <div class="scan-btn" onclick="lancerScan(${nidx})">📷 Scanner le code-barres ISBN</div>
+      <div class="separateur">ou</div>
+      <span onclick="saisirISBN(${nidx})" style="font-size:12px;color:#C8A96E;cursor:pointer;text-decoration:underline;display:block;text-align:center">Saisir l'ISBN manuellement</span>
+    </div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// LOGIQUE JAUNE
+// ═══════════════════════════════════════════════════════
+function jaune_oui(idx) {
+  const r = STATE.analyseEnCours.find(x => x._idx===idx);
+  if (!r) return;
+  const suite = document.getElementById(`jaune-suite-${idx}`);
+
+  // Candidats du référentiel (titre proche + même auteur)
+  const candidats = r._candidats || [];
+
+  let html = '';
+  if (candidats.length > 0) {
+    html += `<div style="font-size:12px;color:#666;margin-bottom:8px">Éditions dans votre référentiel :</div>
+    <div class="choix-list">
+      ${candidats.map((c,i) => `
+        <div class="choix-item" id="jchoix-${idx}-${i}" onclick="jaune_selRef(${idx},${i},'${esc(c.isbn)}','${esc(c.titre)}','${esc(c.auteur)}','${esc(c.editeur||'')}','${esc(c.categorie)}')">
+          <div class="choix-titre">${c.titre}</div>
+          <div class="choix-detail">✍️ ${c.auteur} · ${c.editeur||''} · ${c.categorie}</div>
+          <div class="choix-isbn">ISBN : ${c.isbn}</div>
+        </div>`).join('')}
+      <div class="choix-item" onclick="jaune_pasDansRef(${idx})" style="color:#e57373;text-align:center;font-weight:bold">
+        Pas de correspondance dans le référentiel →
+      </div>
+    </div>
+    <div id="jaune-bnf-${idx}" style="display:none;margin-top:10px"></div>`;
+  } else {
+    // Pas de candidats → directement protocole rouge
+    html += `<div style="color:#e57373;font-size:13px;margin-bottom:8px">Aucune correspondance titre+auteur trouvée dans le référentiel.</div>`;
+    setTimeout(() => appliquerProtocoleRouge(position, etagere), 300);
+  }
+
+  suite.innerHTML = html;
+  suite.style.display = 'block';
+}
+
+function jaune_non(idx) {
+  const r = STATE.analyseEnCours.find(x => x._idx===idx);
+  if (!r) return;
+  const suite = document.getElementById(`jaune-suite-${idx}`);
+  suite.innerHTML = `
+    <div style="font-size:13px;color:#555;margin-bottom:10px">Scanner le code-barres ou saisir l'ISBN :</div>
+    <div class="scan-btn" onclick="lancerScan(${idx})">📷 Scanner le code-barres ISBN</div>
+    <div class="separateur">ou</div>
+    <span onclick="saisirISBN(${idx})" style="font-size:12px;color:#C8A96E;cursor:pointer;text-decoration:underline;display:block;text-align:center">Saisir l'ISBN manuellement</span>`;
+  suite.style.display = 'block';
+}
+
+function jaune_selRef(cidx, selIdx, isbn, titre, auteur, editeur, categorie) {
+  // Marquer sélection
+  document.querySelectorAll(`[id^="jchoix-${cidx}-"]`).forEach(el => el.classList.remove('selected'));
+  const el = document.getElementById(`jchoix-${cidx}-${selIdx}`);
+  if (el) el.classList.add('selected');
+
+  const r = STATE.analyseEnCours.find(x => x._idx===cidx);
+  if (r) { r.isbn_trouve = isbn; r.titre_ref = titre; r.auteur_ref = auteur; r.editeur = editeur; r.categorie = categorie; r.confiance = 'JAUNE_VALIDE'; r._valide = true; }
+
+  // Afficher bouton valider + option autres éditions BNF
+  const bnfZone = document.getElementById(`jaune-bnf-${idx}`);
+  if (bnfZone) {
+    bnfZone.innerHTML = `
+      <button class="btn-green" style="width:100%;margin-bottom:8px" onclick="validerChoix(${cidx})">✅ Valider cette édition</button>
+      <button class="btn-grey" style="width:100%" onclick="autresEditionsBNF(${cidx})">🔍 Autres éditions hors stock (BNF)</button>`;
+    bnfZone.style.display = 'block';
+  }
+}
+
+function jaune_pasDansRef(idx) {
+  appliquerProtocoleRouge(idx);
+}
+
+async function autresEditionsBNF(idx) {
+  const r = STATE.analyseEnCours.find(x => x._idx===idx);
+  if (!r) return;
+  const bnfZone = document.getElementById(`jaune-bnf-${idx}`);
+  bnfZone.innerHTML = `<div class="bnf-loading"><span class="spinner"></span>Recherche BNF...</div>`;
+  const editions = await rechercherBNF(r.titre_ref||r.titre||'', r.auteur_ref||r.auteur||'');
+  afficherEditionsBNF(bnfZone, editions, idx);
+}
+
+// ═══════════════════════════════════════════════════════
+// LOGIQUE ROUGE
+// ═══════════════════════════════════════════════════════
+function rouge_oui(idx) {
+  const r = STATE.analyseEnCours.find(x => x._idx===idx);
+  if (!r) return;
+  const card = document.getElementById(`card-${idx}`);
+  if (card) {
+    const btnRow = card.querySelector('.btn-row');
+    if (btnRow) btnRow.style.display = 'none';
+  }
+  appliquerProtocoleRouge(idx);
+}
+
+function rouge_non(idx) {
+  corrigerTitre(idx);
+}
+
+async function appliquerProtocoleRouge(idx) {
+  const r = STATE.analyseEnCours.find(x => x._idx===idx);
+  if (!r) return;
+
+  let suiteId = `rouge-suite-${idx}`;
+  let suite = document.getElementById(suiteId);
+
+  if (!suite) {
+    const card = document.getElementById(`card-${idx}`);
+    if (card) {
+      card.className = 'livre-card rouge';
+      card.innerHTML = `
+        <div style="font-size:11px;color:#888;margin-bottom:4px">Absent du référentiel :</div>
+        <div class="livre-titre">${r.titre||'?'}</div>
+        <div class="livre-auteur">✍️ ${r.auteur||'—'}</div>
+        <div class="livre-meta"><span class="badge badge-rouge">🔴 Recherche BNF</span></div>
+        <div class="validation-zone">
+          <div id="${suiteId}"></div>
+        </div>`;
+      suite = document.getElementById(suiteId);
+    }
+  }
+
+  if (!suite) return;
+  suite.innerHTML = `<div class="bnf-loading"><span class="spinner"></span>Recherche BNF en cours...</div>`;
+  suite.style.display = 'block';
+
+  const editions = await rechercherBNF(r.titre||r.titre_ref||'', r.auteur||r.auteur_ref||'');
+  afficherEditionsBNF(suite, editions, idx);
+}
+
+function afficherEditionsBNF(container, editions, idx) {
+  const r = STATE.analyseEnCours.find(x => x._idx===idx);
+  const indices = r ? `Format détecté : ${r.format||'?'} · Collection : ${r.collection||'?'} · Éditeur : ${r.editeur_reel||'?'}` : '';
+
+  if (editions.length > 0) {
+    container.innerHTML = `
+      <div style="font-size:12px;color:#666;margin-bottom:4px"><strong>Éditions trouvées à la BNF</strong></div>
+      ${indices ? `<div style="font-size:11px;color:#C8A96E;margin-bottom:8px;font-style:italic">📷 ${indices}</div>` : ''}
+      <div style="font-size:11px;color:#888;margin-bottom:8px">Sélectionnez l'édition compatible avec le livre en main :</div>
+      <div class="choix-list">
+        ${editions.map((ed,i) => `
+          <div class="choix-item" id="bnfchoix-${idx}-${i}"
+            onclick="selBNF(${idx},${i},'${esc(ed.isbn)}','${esc(ed.titre)}','${esc(ed.editeur)}','${esc(ed.date)}')">
+            <div class="choix-titre">${ed.titre}</div>
+            <div class="choix-detail">🏢 ${ed.editeur||'—'}${ed.date ? ' · 📅 ' + ed.date : ''}</div>
+            <div class="choix-isbn">📖 ISBN : <strong>${ed.isbn}</strong></div>
+          </div>`).join('')}
+      </div>
+      <div class="separateur">— ou —</div>
+      <div class="scan-btn" onclick="lancerScan(${position},${etagere})">📷 Scanner le code-barres ISBN</div>
+      <div class="separateur">ou</div>
+      <span onclick="saisirISBN(${position},${etagere})"
+        style="font-size:12px;color:#C8A96E;cursor:pointer;text-decoration:underline;display:block;text-align:center">
+        Saisir l'ISBN manuellement
+      </span>
+      <div id="bnf-valider-${idx}" style="display:none;margin-top:10px">
+        <button class="btn-green" style="width:100%" onclick="validerChoix(${idx})">✅ Valider cette édition</button>
+      </div>`;
+  } else {
+    container.innerHTML = `
+      <div style="font-size:13px;color:#666;margin-bottom:6px">Aucun résultat BNF pour ce titre.</div>
+      ${indices ? `<div style="font-size:11px;color:#C8A96E;margin-bottom:8px;font-style:italic">📷 ${indices}</div>` : ''}
+      <div class="scan-btn" onclick="lancerScan(${position},${etagere})">📷 Scanner le code-barres ISBN</div>
+      <div class="separateur">ou</div>
+      <span onclick="saisirISBN(${position},${etagere})"
+        style="font-size:12px;color:#C8A96E;cursor:pointer;text-decoration:underline;display:block;text-align:center">
+        Saisir l'ISBN manuellement
+      </span>`;
+  }
+}
+
+function selBNF(cidx, selIdx, isbn, titre, editeur, date) {
+  document.querySelectorAll(`[id^="bnfchoix-${cidx}-"]`).forEach(el => el.classList.remove('selected'));
+  const el = document.getElementById(`bnfchoix-${cidx}-${selIdx}`);
+  if (el) el.classList.add('selected');
+
+  const r = STATE.analyseEnCours.find(x => x._idx===cidx);
+  if (r) { r.isbn_trouve = isbn; r.titre_ref = titre||r.titre; r.editeur = editeur; r._valide = true; r.confiance = 'BNF'; }
+
+  const valBtn = document.getElementById(`bnf-valider-${cidx}`);
+  if (valBtn) valBtn.style.display = 'block';
+}
+
+function validerChoix(idx) {
+  const r = STATE.analyseEnCours.find(x => x._idx===idx);
+  if (!r) return;
+  r._valide = true;
+  const card = document.getElementById(`card-${idx}`);
+  if (card) {
+    card.className = 'livre-card resolu';
+    const vz = card.querySelector('.validation-zone');
+    if (vz) vz.innerHTML = `
+      <div style="color:#6A1B9A;font-weight:bold">✅ Édition validée</div>
+      <div class="livre-isbn" style="margin-top:4px">ISBN : ${r.isbn_trouve||'—'}</div>
+      <div style="color:#888;font-size:12px">${r.titre_ref||''} · ${r.editeur||''}</div>`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// CORRECTIONS ET SCAN ISBN
+// ═══════════════════════════════════════════════════════
+function corrigerTitre(idx) {
+  const r = STATE.analyseEnCours.find(x => x._idx===idx);
+  if (!r) return;
+  const titre = prompt('Titre correct :', r.titre||'');
+  if (!titre) return;
+  const auteur = prompt('Auteur :', r.auteur||'');
+  r.titre = titre; r.titre_ref = titre;
+  if (auteur) { r.auteur = auteur; r.auteur_ref = auteur; }
+  const card = document.getElementById(`card-${idx}`);
+  if (card) {
+    const t = card.querySelector('.livre-titre');
+    const a = card.querySelector('.livre-auteur');
+    if (t) t.textContent = titre;
+    if (a && auteur) a.textContent = '✍️ ' + auteur;
+  }
+  appliquerProtocoleRouge(idx);
+}
+
+function lancerScan(idx) {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*'; input.capture = 'environment';
+  input.onchange = async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const { base64 } = await compresser(file, 800, 0.9);
+    try {
+      const res = await appelAPI([{
+        role: 'user',
+        content: [
+          { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: base64 } },
+          { type: 'text', text: 'Lis le code-barres ISBN sur cette image. Réponds UNIQUEMENT avec les 13 chiffres de l\'ISBN, rien d\'autre.' }
+        ]
+      }], 50);
+      const isbn = res.trim().replace(/[^0-9]/g,'');
+      if (isbn.length >= 10) {
+        appliquerISBN(idx, isbn);
+      } else {
+        alert('Code-barres non lisible. Essayez la saisie manuelle.');
+        saisirISBN(idx);
+      }
+    } catch(e) { saisirISBN(position, etagere); }
+  };
+  input.click();
+}
+
+function saisirISBN(idx) {
+  const isbn = prompt('ISBN (13 chiffres) :');
+  if (isbn) appliquerISBN(idx, isbn.trim().replace(/[^0-9]/g,''));
+}
+
+async function appliquerISBN(idx, isbn) {
+  const r = STATE.analyseEnCours.find(x => x._idx===idx);
+  if (!r) return;
+  r.isbn_trouve = isbn; r.confiance = 'SCAN';
+
+  // Chercher dans référentiel d'abord
+  const ref = STATE.referentiel.find(x => x.isbn===isbn || x.isbn.replace(/-/g,'')===isbn);
+  if (ref) {
+    r.titre_ref = ref.titre; r.auteur_ref = ref.auteur; r.categorie = ref.categorie; r.editeur = ref.editeur;
+    r._valide = true;
+    afficherISBNValide(idx, isbn, ref.titre, ref.editeur, true);
+  } else {
+    // Chercher dans BNF par ISBN — afficher résultat pour confirmation
+    const card = document.getElementById(`card-${idx}`);
+    const vz = card ? card.querySelector('.validation-zone') : null;
+    if (vz) vz.innerHTML += `<div class="bnf-loading" style="margin-top:8px"><span class="spinner"></span>Vérification BNF...</div>`;
+
+    const eds = await rechercherBNFparISBN(isbn);
+    if (eds.length > 0) {
+      r.titre_ref = eds[0].titre||r.titre; r.editeur = eds[0].editeur;
+      // Afficher pour confirmation
+      if (vz) {
+        const loading = vz.querySelector('.bnf-loading');
+        if (loading) loading.remove();
+        const confirmDiv = document.createElement('div');
+        confirmDiv.style.cssText = 'background:#F3E5F5;border:1px solid #CE93D8;border-radius:8px;padding:12px;margin-top:8px';
+        confirmDiv.innerHTML = `
+          <div style="font-size:12px;color:#6A1B9A;margin-bottom:6px"><strong>Titre trouvé à la BNF :</strong></div>
+          <div style="font-weight:bold;margin-bottom:2px">${eds[0].titre}</div>
+          <div style="color:#888;font-size:12px">🏢 ${eds[0].editeur||'—'} · 📅 ${eds[0].date||'—'}</div>
+          <div style="font-family:monospace;color:#C8A96E;font-size:12px;font-weight:bold;margin:4px 0">ISBN : ${isbn}</div>
+          <div class="btn-row" style="margin-top:10px">
+            <button class="btn-green" onclick="confirmerISBN(${idx})">✅ Confirmer</button>
+            <button class="btn-grey" onclick="saisirISBN(${idx})">✏️ Corriger</button>
+          </div>`;
+        vz.appendChild(confirmDiv);
+      }
+    } else {
+      r._valide = true;
+      afficherISBNValide(idx, isbn, r.titre||'Titre inconnu', '', false);
+    }
+  }
+}
+
+function confirmerISBN(idx) {
+  const r = STATE.analyseEnCours.find(x => x._idx===idx);
+  if (r) r._valide = true;
+  afficherISBNValide(idx, r.isbn_trouve, r.titre_ref||r.titre, r.editeur, true);
+}
+
+function afficherISBNValide(idx, isbn, titre, editeur, trouveBNF) {
+  const card = document.getElementById(`card-${idx}`);
+  if (card) {
+    card.className = 'livre-card resolu';
+    const vz = card.querySelector('.validation-zone');
+    if (vz) vz.innerHTML = `
+      <div style="color:#6A1B9A;font-weight:bold">✅ ISBN enregistré</div>
+      <div style="font-family:monospace;color:#C8A96E;font-size:13px;font-weight:bold;margin:4px 0">ISBN : ${isbn}</div>
+      <div style="font-weight:bold;font-size:13px">${titre||'—'}</div>
+      ${editeur?`<div style="color:#888;font-size:12px">🏢 ${editeur}</div>`:''}
+      ${!trouveBNF?'<div style="color:#aaa;font-size:11px;margin-top:4px">Non trouvé dans la BNF</div>':''}`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// API BNF
+// ═══════════════════════════════════════════════════════
+async function rechercherBNF(titre, auteur) {
+  try {
+    const t = titre.split(' ').slice(0,4).join(' ');
+    const a = auteur.split(' ').slice(0,2).join(' ');
+    const q = encodeURIComponent(`(bib.title all "${t}") and (bib.author all "${a}")`);
+    const res = await fetch(`${BNF_BASE}&query=${q}`);
+    if (!res.ok) return [];
+    return parseBNF(await res.text());
+  } catch(e) { return []; }
+}
+
+async function rechercherBNFparISBN(isbn) {
+  try {
+    const q = encodeURIComponent(`bib.isbn adj "${isbn}"`);
+    const res = await fetch(`${BNF_BASE}&query=${q}`);
+    if (!res.ok) return [];
+    return parseBNF(await res.text());
+  } catch(e) { return []; }
+}
+
+function parseBNF(text) {
+  const nb = parseInt(text.match(/numberOfRecords>(\d+)</)?.[1]||'0');
+  if (nb === 0) return [];
+  const records = text.split('<srw:record>').slice(1);
+  const resultats = [];
+  records.forEach(rec => {
+    const titre = rec.match(/<dc:title>(.*?)<\/dc:title>/)?.[1]||'';
+    const editeur = rec.match(/<dc:publisher>(.*?)<\/dc:publisher>/)?.[1]||'';
+    const date = rec.match(/<dc:date>(.*?)<\/dc:date>/)?.[1]||'';
+    const isbns = [...rec.matchAll(/<dc:identifier>[^<]*(97[89]\d{10})[^<]*<\/dc:identifier>/g)].map(m => m[1]);
+    isbns.forEach(isbn => resultats.push({ titre, editeur, date, isbn }));
+  });
+  return resultats.slice(0,8);
+}
+
+// ═══════════════════════════════════════════════════════
+// BOUTONS SESSION
+// ═══════════════════════════════════════════════════════
+function ajouterEtagere() {
+  const now = new Date().toLocaleString('fr-FR');
+  let nb = 0;
+  STATE.analyseEnCours.forEach(r => {
+    if (r.confiance === 'NOIR' && !r.isbn_trouve) return;
+    STATE.inventaire.push({
+      isbn: r.isbn_trouve||'',
+      titre: r.titre_ref||r.titre||'',
+      auteur: r.auteur_ref||r.auteur||'',
+      editeur: r.editeur||'',
+      categorie: r.categorie||'',
+      format: r.format||'',
+      collection: r.collection||'',
+      confiance: r.confiance,
+      etagere: r.etagere||1,
+      position: r.position||0,
+      date: now
+    });
+    nb++;
+  });
+  sauvegarder();
+  mettreAJourInventaire();
+  document.getElementById('analyseResultats').style.display = 'none';
+  document.getElementById('sessionBox').style.display = 'none';
+  document.getElementById('postAjoutBox').style.display = 'block';
+}
+
+function recommencerEtagere() {
+  reinitScan();
+  document.getElementById('fileCamera').click();
+}
+
+function continuerInventaire() {
+  reinitScan();
+}
+
+function cloturerSession() {
+  sauvegarder();
+  reinitScan();
+  showTab('inventaireTab');
+  alert(`💾 Session sauvegardée — ${STATE.inventaire.length} livres dans l'inventaire.`);
+}
+
+function reinitScan() {
+  STATE.analyseEnCours = [];
+  STATE._passe1 = null;
+  STATE.nbAttendu = null;
+  document.getElementById('analyseResultats').style.display = 'none';
+  document.getElementById('confirmCountBox').style.display = 'none';
+  document.getElementById('postAjoutBox').style.display = 'none';
+  document.getElementById('sessionBox').style.display = 'none';
+  document.getElementById('photoPreview').style.display = 'none';
+  document.getElementById('scanError').style.display = 'none';
+  document.getElementById('conseilsCard').style.display = 'block';
+  document.getElementById('secVert').style.display = 'none';
+  document.getElementById('secJaune').style.display = 'none';
+  document.getElementById('secRouge').style.display = 'none';
+  document.getElementById('secNoir').style.display = 'none';
+  document.getElementById('fileCamera').value = '';
+  document.getElementById('fileGalerie').value = '';
+}
+
+// ═══════════════════════════════════════════════════════
+// INVENTAIRE
+// ═══════════════════════════════════════════════════════
+function mettreAJourInventaire() {
+  const nb = STATE.inventaire.length;
+  document.getElementById('tabCount').textContent = nb;
+  document.getElementById('invNb').textContent = nb;
+  document.getElementById('invVide').style.display = nb === 0 ? 'block' : 'none';
+  document.getElementById('invContenu').style.display = nb > 0 ? 'block' : 'none';
+  if (nb > 0) {
+    document.getElementById('invBody').innerHTML = STATE.inventaire.map((l,i) => `
+      <tr>
+        <td style="font-family:monospace;font-size:11px">${l.isbn||'—'}</td>
+        <td>${tronq(l.titre,30)}</td>
+        <td style="color:#666">${tronq(l.auteur,20)}</td>
+        <td style="color:#888">${tronq(l.editeur,15)}</td>
+        <td><span style="font-size:10px;background:#f0ece4;padding:2px 5px;border-radius:4px">${l.categorie||'—'}</span></td>
+        <td>${l.confiance==='VERT'?'🟢':l.confiance==='JAUNE_VALIDE'||l.confiance==='BNF'?'🟡':l.confiance==='SCAN'||l.confiance==='MANUEL'?'🔵':'🔴'}</td>
+      </tr>`).join('');
+  }
+}
+
+function viderInventaire() {
+  if (!confirm('Vider tout l\'inventaire ?')) return;
+  STATE.inventaire = [];
+  sauvegarder();
+  mettreAJourInventaire();
+}
+
+function exporterCSV() {
+  const header = 'ISBN,Titre,Auteur,Éditeur,Catégorie,Format,Collection,Confiance,Date\n';
+  const rows = STATE.inventaire.map(l =>
+    [l.isbn,l.titre,l.auteur,l.editeur,l.categorie,l.format,l.collection,l.confiance,l.date]
+    .map(v => `"${(v||'').replace(/"/g,'""')}"`)
+    .join(',')
+  ).join('\n');
+  telecharger('\uFEFF'+header+rows, `inventaire_${date()}.csv`, 'text/csv;charset=utf-8;');
+}
+
+function exporterExcel() {
+  const ws = XLSX.utils.json_to_sheet(STATE.inventaire.map(l => ({
+    'ISBN': l.isbn||'', 'Titre': l.titre||'', 'Auteur': l.auteur||'',
+    'Éditeur': l.editeur||'', 'Catégorie': l.categorie||'',
+    'Format': l.format||'', 'Collection': l.collection||'',
+    'Confiance': l.confiance||'', 'Date': l.date||''
+  })));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Inventaire');
+  XLSX.writeFile(wb, `inventaire_${date()}.xlsx`);
+}
+
+function telecharger(contenu, nom, type) {
+  const blob = new Blob([contenu], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = nom; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function date() { return new Date().toISOString().slice(0,10); }
+
+// ═══════════════════════════════════════════════════════
+// ALERTES
+// ═══════════════════════════════════════════════════════
+function showAlert(id, msg) {
+  const el = document.getElementById(id);
+  if (el) { el.textContent = msg; el.style.display = 'block'; }
+}
+function hideAlert(id) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = 'none';
+}
+</script>
+</body>
+</html>
