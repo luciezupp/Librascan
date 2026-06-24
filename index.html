@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>LibraScan</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #F7F4EF; color: #1a1a1a; min-height: 100vh; }
+    header { background: #1C1C1E; padding: 14px 20px; }
+    header .sub { color: #C8A96E; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; }
+    header h1 { color: #fff; font-size: 20px; }
+    .container { padding: 20px; max-width: 680px; margin: 0 auto; }
+    .card { background: #fff; border-radius: 14px; padding: 18px; border: 1px solid #E0D8CC; margin-bottom: 14px; }
+    .btn { display: block; width: 100%; border: none; border-radius: 10px; padding: 13px; font-size: 14px; font-weight: bold; cursor: pointer; text-align: center; margin-bottom: 8px; }
+    .btn-gold { background: #C8A96E; color: #1C1C1E; }
+    .btn-outline { background: #fff; color: #1C1C1E; border: 2px solid #C8A96E; }
+    .btn-green { background: #E8F5E9; color: #2E7D32; border: 1.5px solid #4CAF50; border-radius: 8px; padding: 10px; font-size: 13px; font-weight: bold; cursor: pointer; flex: 1; }
+    .btn-red { background: #FFEBEE; color: #C62828; border: 1.5px solid #F44336; border-radius: 8px; padding: 10px; font-size: 13px; font-weight: bold; cursor: pointer; flex: 1; }
+    .btn-row { display: flex; gap: 8px; margin: 10px 0; }
+    .btn-sm { display: inline-block; background: #C8A96E; color: #1C1C1E; border: none; border-radius: 7px; padding: 8px 16px; font-size: 13px; font-weight: bold; cursor: pointer; }
+    .field { margin-bottom: 12px; }
+    .field label { display: block; font-size: 12px; color: #666; margin-bottom: 5px; font-weight: bold; text-transform: uppercase; }
+    .field input { width: 100%; border: 1.5px solid #E0D8CC; border-radius: 8px; padding: 11px; font-size: 14px; background: #fafafa; }
+    .field input:focus { outline: none; border-color: #C8A96E; }
+    .alert-err { background: #FFEBEE; border: 1px solid #EF9A9A; color: #C62828; border-radius: 10px; padding: 11px 14px; font-size: 13px; margin-bottom: 12px; display: none; }
+    .alert-ok { background: #E8F5E9; border: 1px solid #A5D6A7; color: #1B5E20; border-radius: 10px; padding: 11px 14px; font-size: 13px; margin-bottom: 12px; display: none; }
+    .prog-box { background: #1C1C1E; color: #fff; border-radius: 12px; padding: 16px; margin-bottom: 14px; text-align: center; display: none; }
+    .prog-bar { height: 4px; background: #333; border-radius: 4px; margin-top: 10px; overflow: hidden; }
+    .prog-fill { height: 100%; background: #C8A96E; border-radius: 4px; transition: width 0.3s; }
+    .spin { display: inline-block; width: 14px; height: 14px; border: 2px solid #C8A96E33; border-top-color: #C8A96E; border-radius: 50%; animation: sp 0.8s linear infinite; vertical-align: middle; margin-right: 5px; }
+    @keyframes sp { to { transform: rotate(360deg); } }
+    .count-box { background: #fff; border-radius: 14px; border: 2px solid #C8A96E; padding: 24px 20px; text-align: center; margin-bottom: 14px; display: none; }
+    .count-nb { font-size: 64px; font-weight: bold; color: #C8A96E; margin: 10px 0; }
+    .livre-item { background: #fff; border-radius: 10px; border: 1px solid #E0D8CC; padding: 12px 14px; margin-bottom: 8px; }
+    .livre-titre { font-weight: bold; font-size: 14px; }
+    .livre-auteur { color: #666; font-size: 12px; margin-top: 2px; }
+    .livre-meta { color: #aaa; font-size: 11px; margin-top: 3px; }
+    .drop { border: 2px dashed #C8A96E; border-radius: 14px; padding: 26px 20px; text-align: center; cursor: pointer; background: #fff; margin-bottom: 14px; }
+    .drop .ico { font-size: 40px; margin-bottom: 8px; }
+    .preview-box { display: none; margin-bottom: 14px; border-radius: 12px; overflow: hidden; border: 1px solid #E0D8CC; }
+    .preview-box img { width: 100%; display: block; max-height: 220px; object-fit: cover; }
+    .sec-title { font-size: 11px; color: #888; letter-spacing: 2px; text-transform: uppercase; margin: 14px 0 8px; }
+    input[type="file"] { display: none; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="sub">Inventaire Librairie</div>
+  <h1>📚 LibraScan — Étape 1</h1>
+</header>
+
+<div class="container">
+
+  <!-- CLÉ API -->
+  <div id="zoneAPI" class="card">
+    <h2 style="font-size:16px;margin-bottom:10px">🔑 Clé API</h2>
+    <div class="field">
+      <label>Votre clé Anthropic</label>
+      <input type="password" id="apiKey" placeholder="sk-ant-..." autocomplete="off">
+    </div>
+    <div class="alert-err" id="apiErr"></div>
+    <div class="alert-ok" id="apiOk"></div>
+    <button class="btn btn-gold" onclick="validerCle()">✓ Valider</button>
+  </div>
+
+  <!-- ZONE SCAN -->
+  <div id="zoneScan" style="display:none">
+
+    <div class="drop" id="dropScan">
+      <div class="ico">📸</div>
+      <div style="font-weight:bold;font-size:15px;margin-bottom:6px">Photographier une étagère</div>
+      <p style="color:#666;font-size:12px">Photo de face. Plusieurs étagères possibles.</p>
+      <div style="margin-top:14px;display:flex;gap:8px;justify-content:center">
+        <span class="btn-sm" onclick="document.getElementById('fCam').click()">📷 Caméra</span>
+        <span class="btn-sm" style="background:#fff;border:1.5px solid #C8A96E;color:#1C1C1E" onclick="document.getElementById('fGal').click()">🖼️ Galerie</span>
+      </div>
+    </div>
+    <input type="file" id="fCam" accept="image/*" capture="environment">
+    <input type="file" id="fGal" accept="image/*">
+
+    <div class="preview-box" id="prevBox">
+      <img id="prevImg">
+    </div>
+
+    <!-- Progression -->
+    <div class="prog-box" id="progBox">
+      <div><span class="spin"></span><span id="progMsg">Analyse en cours...</span></div>
+      <div class="prog-bar"><div class="prog-fill" id="progFill" style="width:10%"></div></div>
+      <div style="font-size:11px;color:#aaa;margin-top:5px" id="progDetail"></div>
+    </div>
+
+    <!-- Confirmation nombre -->
+    <div class="count-box" id="countBox">
+      <p style="font-size:13px;color:#555;margin-bottom:4px">L'IA a détecté ce nombre de livres :</p>
+      <div class="count-nb" id="countNb">0</div>
+      <p style="font-size:13px;color:#555;margin-bottom:16px">Est-ce correct ?</p>
+      <div class="btn-row">
+        <button class="btn-green" onclick="confirmerNombre()">✅ Oui, correct</button>
+        <button class="btn-red" onclick="demanderRescan()">🔄 Non, rescanner</button>
+      </div>
+      <div id="rescanForm" style="display:none;margin-top:14px;text-align:left">
+        <div class="field">
+          <label>Nombre réel de livres sur l'étagère</label>
+          <input type="number" id="nbAttendu" placeholder="Ex: 17" min="1" max="200">
+        </div>
+        <button class="btn btn-gold" onclick="relancerScan()">📸 Reprendre la photo</button>
+      </div>
+    </div>
+
+    <!-- Liste des livres détectés -->
+    <div id="zoneListe" style="display:none">
+      <div class="sec-title" id="listeTitle"></div>
+      <div id="listeLivres"></div>
+      <button class="btn btn-gold" style="margin-top:8px" onclick="validerListe()">➡️ Valider cette liste et continuer</button>
+      <button class="btn btn-outline" onclick="recommencer()">🔄 Rescanner cette étagère</button>
+    </div>
+
+    <div class="alert-err" id="scanErr" style="display:none"></div>
+
+  </div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// ÉTAT
+// ═══════════════════════════════════════════════════
+const G = {
+  apiKey: localStorage.getItem('ls_key') || '',
+  livres: [],
+  nbAttendu: null,
+  b64: null,
+};
+
+// ═══════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  if (G.apiKey) {
+    document.getElementById('zoneAPI').style.display = 'none';
+    document.getElementById('zoneScan').style.display = 'block';
+  }
+  document.getElementById('fCam').addEventListener('change', e => { if (e.target.files[0]) lancerAnalyse(e.target.files[0]); });
+  document.getElementById('fGal').addEventListener('change', e => { if (e.target.files[0]) lancerAnalyse(e.target.files[0]); });
+});
+
+// ═══════════════════════════════════════════════════
+// CLÉ API
+// ═══════════════════════════════════════════════════
+async function validerCle() {
+  const key = document.getElementById('apiKey').value.trim();
+  if (!key.startsWith('sk-')) { showErr('apiErr', 'La clé doit commencer par sk-'); return; }
+  hideEl('apiErr');
+  const btn = document.querySelector('#zoneAPI .btn-gold');
+  btn.innerHTML = '<span class="spin"></span>Vérification...';
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 10, messages: [{ role: 'user', content: 'ok' }] })
+    });
+    if (r.ok || r.status === 400) {
+      localStorage.setItem('ls_key', key);
+      G.apiKey = key;
+      document.getElementById('apiOk').textContent = '✅ Clé valide !';
+      document.getElementById('apiOk').style.display = 'block';
+      setTimeout(() => {
+        document.getElementById('zoneAPI').style.display = 'none';
+        document.getElementById('zoneScan').style.display = 'block';
+      }, 800);
+    } else {
+      showErr('apiErr', 'Clé invalide. Vérifiez sur console.anthropic.com');
+    }
+  } catch(e) {
+    showErr('apiErr', 'Erreur réseau.');
+  }
+  btn.innerHTML = '✓ Valider';
+}
+
+// ═══════════════════════════════════════════════════
+// COMPRESSION IMAGE
+// ═══════════════════════════════════════════════════
+function compresser(file) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let w = img.width, h = img.height;
+        const maxW = 1400;
+        if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+        resolve({ b64: dataUrl.split(',')[1], dataUrl });
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// APPEL API
+// ═══════════════════════════════════════════════════
+async function appelAPI(messages) {
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': G.apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 4096, messages })
+  });
+  if (!r.ok) throw new Error('Erreur API : ' + r.status);
+  const d = await r.json();
+  return d.content.find(b => b.type === 'text')?.text || '';
+}
+
+function parseJSON(txt) {
+  const clean = txt.trim().replace(/^```json\s*/,'').replace(/\s*```$/,'');
+  try { return JSON.parse(clean); } catch {
+    const m = clean.match(/\{[\s\S]*\}/);
+    if (m) try { return JSON.parse(m[0]); } catch {}
+    return null;
+  }
+}
+
+function setProg(pct, msg, detail) {
+  document.getElementById('progFill').style.width = pct + '%';
+  document.getElementById('progMsg').textContent = msg;
+  if (detail !== undefined) document.getElementById('progDetail').textContent = detail;
+}
+
+// ═══════════════════════════════════════════════════
+// ANALYSE PHOTO — DÉTECTION UNIQUEMENT
+// ═══════════════════════════════════════════════════
+async function lancerAnalyse(file) {
+  // Reset
+  hideEl('countBox'); hideEl('zoneListe'); hideEl('scanErr');
+  document.getElementById('rescanForm').style.display = 'none';
+
+  // Compression + preview
+  setProg(5, 'Compression de l\'image...', '');
+  document.getElementById('progBox').style.display = 'block';
+
+  const { b64, dataUrl } = await compresser(file);
+  G.b64 = b64;
+  document.getElementById('prevImg').src = dataUrl;
+  document.getElementById('prevBox').style.display = 'block';
+
+  try {
+    setProg(20, 'Détection des livres sur la photo...', 'L\'IA analyse les tranches');
+
+    const hint = G.nbAttendu
+      ? `\nIMPORTANT : Le libraire a compté exactement ${G.nbAttendu} livres sur cette étagère. Tu dois en trouver exactement ${G.nbAttendu}. Regarde attentivement chaque tranche visible.`
+      : '';
+
+    const prompt = `Tu es un expert en identification de livres pour librairie.
+Analyse cette photo d'étagère et détecte TOUS les livres visibles.${hint}
+
+RÈGLES IMPORTANTES :
+- Numérote les livres de gauche à droite sur chaque étagère, en commençant par 1
+- N'oublie aucun livre, même les très fins, même les noirs, même ceux partiellement cachés
+- Les positions doivent être strictement consécutives : 1, 2, 3, 4... sans saut ni doublon
+- Si un livre est difficile à lire, mets lisibilite=FAIBLE mais inclus-le quand même avec sa position correcte
+
+Pour chaque livre donne :
+- position : numéro de gauche à droite sur son étagère (1, 2, 3... sans saut)
+- etagere : numéro d'étagère de haut en bas (1 = la plus haute)
+- titre : texte lisible sur la tranche (ou "" si illisible)
+- auteur : texte lisible sur la tranche (ou "" si illisible)
+- editeur_reel : éditeur déduit du logo/charte graphique (PAS le texte brut)
+- collection : nom de collection si visible (Folio, Points, Gallmeister, etc.)
+- format : POCHE ou BROCHE ou RELIE ou COLLECTOR
+- lisibilite : BON ou MOYEN ou FAIBLE
+
+Réponds UNIQUEMENT avec du JSON valide, sans texte avant ou après, sans backticks :
+{
+  "nb_etageres": 2,
+  "nb_livres": 5,
+  "livres": [
+    {
+      "position": 1,
+      "etagere": 1,
+      "titre": "Walden",
+      "auteur": "Henry D. Thoreau",
+      "editeur_reel": "Gallmeister",
+      "collection": "Totem",
+      "format": "POCHE",
+      "lisibilite": "BON"
+    }
+  ]
+}`;
+
+    const txt = await appelAPI([{
+      role: 'user',
+      content: [
+        { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: b64 } },
+        { type: 'text', text: prompt }
+      ]
+    }]);
+
+    const data = parseJSON(txt);
+
+    if (!data || !Array.isArray(data.livres)) {
+      throw new Error('Réponse IA invalide. Réessayez avec une meilleure photo.');
+    }
+
+    // Assigner _idx unique à chaque livre
+    data.livres.forEach((l, i) => {
+      l._idx = i;
+      if (!l.position) l.position = i + 1;
+      if (!l.etagere) l.etagere = 1;
+    });
+
+    G.livres = data.livres;
+    G.nbAttendu = null;
+
+    hideEl('progBox');
+
+    // Afficher confirmation du nombre
+    document.getElementById('countNb').textContent = data.livres.length;
+    document.getElementById('countBox').style.display = 'block';
+
+  } catch(err) {
+    hideEl('progBox');
+    showErr('scanErr', '⚠️ ' + err.message);
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// CONFIRMATION NOMBRE
+// ═══════════════════════════════════════════════════
+function confirmerNombre() {
+  hideEl('countBox');
+  afficherListe();
+}
+
+function demanderRescan() {
+  document.getElementById('rescanForm').style.display = 'block';
+}
+
+function relancerScan() {
+  const nb = parseInt(document.getElementById('nbAttendu').value);
+  if (!nb || nb < 1) { alert('Entrez un nombre valide.'); return; }
+  G.nbAttendu = nb;
+  hideEl('countBox');
+  document.getElementById('rescanForm').style.display = 'none';
+  document.getElementById('fCam').value = '';
+  document.getElementById('fGal').value = '';
+  document.getElementById('fCam').click();
+}
+
+// ═══════════════════════════════════════════════════
+// AFFICHAGE DE LA LISTE
+// ═══════════════════════════════════════════════════
+function afficherListe() {
+  const livres = G.livres;
+
+  // Trier par étagère puis position
+  const tries = [...livres].sort((a, b) =>
+    (a.etagere || 1) - (b.etagere || 1) || (a.position || 0) - (b.position || 0)
+  );
+
+  document.getElementById('listeTitle').textContent =
+    `${livres.length} livre${livres.length > 1 ? 's' : ''} détecté${livres.length > 1 ? 's' : ''}`;
+
+  let html = '';
+  let etActuelle = null;
+
+  tries.forEach(l => {
+    const et = l.etagere || 1;
+    if (et !== etActuelle) {
+      html += `<div style="font-size:11px;color:#aaa;letter-spacing:1px;text-transform:uppercase;margin:12px 0 6px">Étagère ${et}</div>`;
+      etActuelle = et;
+    }
+    const lisible = l.lisibilite !== 'FAIBLE';
+    html += `<div class="livre-item">
+      <div class="livre-titre">${l.titre || '<span style="color:#aaa;font-style:italic">Titre illisible</span>'}</div>
+      <div class="livre-auteur">✍️ ${l.auteur || '—'}</div>
+      <div class="livre-meta">
+        ${l.editeur_reel ? l.editeur_reel + ' · ' : ''}
+        ${l.collection ? l.collection + ' · ' : ''}
+        ${l.format || ''}
+        ${!lisible ? ' · <span style="color:#F44336">⚠️ Tranche difficile à lire</span>' : ''}
+      </div>
+    </div>`;
+  });
+
+  document.getElementById('listeLivres').innerHTML = html;
+  document.getElementById('zoneListe').style.display = 'block';
+}
+
+function validerListe() {
+  alert('✅ Liste validée ! (Étape 2 à venir : matching avec le référentiel)');
+}
+
+function recommencer() {
+  hideEl('zoneListe');
+  hideEl('prevBox');
+  hideEl('countBox');
+  G.livres = [];
+  document.getElementById('fCam').value = '';
+  document.getElementById('fGal').value = '';
+}
+
+// ═══════════════════════════════════════════════════
+// UTILITAIRES
+// ═══════════════════════════════════════════════════
+function showErr(id, msg) {
+  const e = document.getElementById(id);
+  if (e) { e.textContent = msg; e.style.display = 'block'; }
+}
+function hideEl(id) {
+  const e = document.getElementById(id);
+  if (e) e.style.display = 'none';
+}
+</script>
+</body>
+</html>
